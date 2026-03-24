@@ -1136,8 +1136,7 @@ SettingGroupManager.registerGroups({
         supportPage: "smart-window",
         controlAttrs: {
           headinglevel: 2,
-          iconsrc: "chrome://browser/skin/smart-window-mono.svg",
-          badge: "beta",
+          badge: "new",
         },
         items: [
           {
