@@ -2363,6 +2363,21 @@ def add_index_routes(config, tasks):
 
 
 @transforms.add
+def add_github_checks_route(config, tasks):
+    """Add the Github 'checks' route to code review tasks."""
+    if config.params["repository_type"] != "git":
+        yield from tasks
+        return
+
+    for task in tasks:
+        if task.get("attributes", {}).get("code-review"):
+            routes = task.setdefault("routes", [])
+            routes.append("checks")
+
+        yield task
+
+
+@transforms.add
 def try_task_config_env(config, tasks):
     """Set environment variables in the task."""
     env = config.params["try_task_config"].get("env")
