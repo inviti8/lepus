@@ -23,7 +23,13 @@ import androidx.compose.ui.tooling.preview.PreviewParameterProvider
  * ```
  */
 class PreviewThemeProvider : PreviewParameterProvider<Theme> {
-    override val values = Theme.entries.asSequence()
+    private val themes = Theme.entries
+
+    override val values = themes.asSequence()
+
+    override fun getDisplayName(index: Int): String {
+        return themes[index].name
+    }
 }
 
 /**
