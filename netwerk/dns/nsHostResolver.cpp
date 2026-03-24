@@ -1591,9 +1591,8 @@ nsHostResolver::LookupStatus nsHostResolver::CompleteLookupLocked(
     MutexAutoLock lock(addrRec->addr_info_lock);
     if (addrRec->addr_info) {
       for (const auto& elem : addrRec->addr_info->Addresses()) {
-        char buf[128];
-        elem.ToStringBuffer(buf, sizeof(buf));
-        LOG(("CompleteLookup: %s has %s\n", addrRec->host.get(), buf));
+        LOG(("CompleteLookup: %s has %s\n", addrRec->host.get(),
+             elem.ToString().get()));
       }
     } else {
       LOG(("CompleteLookup: %s has NO address\n", addrRec->host.get()));
@@ -1938,9 +1937,9 @@ void nsHostResolver::GetDNSCacheEntries(nsTArray<DNSCacheEntries>* args) {
     if (addrRec && addrRec->addr_info) {
       MutexAutoLock lock(addrRec->addr_info_lock);
       for (const auto& addr : addrRec->addr_info->Addresses()) {
-        char buf[kIPv6CStrBufSize];
-        if (addr.ToStringBuffer(buf, sizeof(buf))) {
-          info.hostaddr.AppendElement(buf);
+        nsCString addrStr;
+        if (addr.ToString(addrStr)) {
+          info.hostaddr.AppendElement(std::move(addrStr));
         }
       }
       info.TRR = addrRec->addr_info->IsTRR();
