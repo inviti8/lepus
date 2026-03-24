@@ -577,7 +577,6 @@ STATIC_ATOMS = [
     Atom("innerHTML", "innerHTML"),
     Atom("innerText", "innerText"),
     Atom("infinity", "infinity"),
-    Atom("inherit", "inherit"),
     Atom("inherits", "inherits"),
     Atom("inheritOverflow", "inherit-overflow"),
     Atom("inheritstyle", "inheritstyle"),
