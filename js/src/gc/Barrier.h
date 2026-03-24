@@ -701,17 +701,6 @@ class BarrieredPtrImpl
  */
 DEFINE_BARRIERED_PTR(PreBarriered, gc::BarrierOption_PreWriteBarrier);
 
-}  // namespace js
-
-namespace JS::detail {
-template <typename T>
-struct DefineComparisonOps<js::PreBarriered<T>> : std::true_type {
-  static const T& get(const js::PreBarriered<T>& v) { return v.get(); }
-};
-}  // namespace JS::detail
-
-namespace js {
-
 /*
  * A pre- and post-barriered heap pointer, for use inside the JS engine.
  *
@@ -726,17 +715,6 @@ namespace js {
 DEFINE_BARRIERED_PTR(GCPtr, gc::BarrierOption_PreWriteBarrier |
                                 gc::BarrierOption_PostWriteBarrier |
                                 gc::BarrierOption_HasGCLifetime);
-
-}  // namespace js
-
-namespace JS::detail {
-template <typename T>
-struct DefineComparisonOps<js::GCPtr<T>> : std::true_type {
-  static const T& get(const js::GCPtr<T>& v) { return v.get(); }
-};
-}  // namespace JS::detail
-
-namespace js {
 
 /*
  * A pre- and post-barriered heap pointer, for use inside the JS engine. These
@@ -818,17 +796,6 @@ class GCStructPtr : public BarrieredBase<T> {
   }
 };
 
-}  // namespace js
-
-namespace JS::detail {
-template <typename T>
-struct DefineComparisonOps<js::HeapPtr<T>> : std::true_type {
-  static const T& get(const js::HeapPtr<T>& v) { return v.get(); }
-};
-}  // namespace JS::detail
-
-namespace js {
-
 // Incremental GC requires that weak pointers have read barriers. See the block
 // comment at the top of Barrier.h for a complete discussion of why.
 //
@@ -845,19 +812,6 @@ DEFINE_BARRIERED_PTR(WeakHeapPtr, gc::BarrierOption_ReadBarrier |
 // This should only be necessary in a limited number of cases. Please don't add
 // more uses of this if at all possible.
 DEFINE_BARRIERED_PTR(UnsafeBarePtr, gc::BarrierOption_None);
-
-}  // namespace js
-
-namespace JS::detail {
-template <typename T>
-struct DefineComparisonOps<js::WeakHeapPtr<T>> : std::true_type {
-  static const T& get(const js::WeakHeapPtr<T>& v) {
-    return v.unbarrieredGet();
-  }
-};
-}  // namespace JS::detail
-
-namespace js {
 
 // A pre- and post-barriered Value that is specialized to be aware that it
 // resides in a slots or elements vector. This allows it to be relocated in
@@ -928,17 +882,6 @@ class HeapSlot : public BarrieredBase<Value>,
     }
   }
 };
-
-}  // namespace js
-
-namespace JS::detail {
-template <>
-struct DefineComparisonOps<js::HeapSlot> : std::true_type {
-  static const Value& get(const js::HeapSlot& v) { return v.get(); }
-};
-}  // namespace JS::detail
-
-namespace js {
 
 class HeapSlotArray {
   HeapSlot* array;
@@ -1273,6 +1216,34 @@ template <class T>
 using PreAndPostBarrierWrapper = GCPtr<T>;
 
 }  // namespace js
+
+// Define comparison ops for all barrier wrappers.
+
+namespace JS::detail {
+
+// Define comparison ops for barriered pointer wrappers. Comparisons don't
+// trigger read barriers. See js/public/ComparisonOperators.h for details.
+#define DEFINE_BARRIERED_PTR_COMPARISON_OPS(BarrieredPtr)        \
+  template <typename T>                                          \
+  struct DefineComparisonOps<BarrieredPtr<T>> : std::true_type { \
+    static const T& get(const BarrieredPtr<T>& v) {              \
+      return v.unbarrieredGet();                                 \
+    }                                                            \
+  }
+
+DEFINE_BARRIERED_PTR_COMPARISON_OPS(js::PreBarriered);
+DEFINE_BARRIERED_PTR_COMPARISON_OPS(js::GCPtr);
+DEFINE_BARRIERED_PTR_COMPARISON_OPS(js::HeapPtr);
+DEFINE_BARRIERED_PTR_COMPARISON_OPS(js::WeakHeapPtr);
+
+#undef DEFINE_BARRIERED_PTR_COMPARISON_OPS
+
+template <>
+struct DefineComparisonOps<js::HeapSlot> : std::true_type {
+  static const Value& get(const js::HeapSlot& v) { return v.get(); }
+};
+
+}  // namespace JS::detail
 
 namespace mozilla {
 
