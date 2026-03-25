@@ -26,6 +26,10 @@ urlbar:
           user started the search action from. The possible values are: `urlbar`
           , `handoff`, `urlbar_newtab`, `urlbar_addonpage`, and `searchbar`.
         type: string
+      location:
+        description: >
+          Which input was used: fullpage, sidebar, or urlbar.
+        type: string
       interaction:
         description: >
           How the user started the search action. The possible values are:
@@ -206,6 +210,10 @@ urlbar:
           user started the search action from. The possible values are: `urlbar`
           , `handoff`, `urlbar_newtab`, `urlbar_addonpage`, and `searchbar`.
         type: string
+      location:
+        description: >
+          Which input was used: fullpage, sidebar, or urlbar.
+        type: string
       interaction:
         description: >
           How the user started the search action. The possible values are:
@@ -327,6 +335,10 @@ urlbar:
           user started the search action from. The possible values are: `urlbar`
           , `handoff`, `urlbar_newtab`, `urlbar_addonpage`, and `searchbar`.
         type: string
+      location:
+        description: >
+          Which input was used: fullpage, sidebar, or urlbar.
+        type: string
       interaction:
         description: >
           How the user started the search action. The possible values are:
@@ -414,6 +426,10 @@ urlbar:
           `sap` is the meaning of `search access point`. It records where the
           user started the search action from. The possible values are: `urlbar`
           , `handoff`, `urlbar_newtab`, `urlbar_addonpage`, and `searchbar`.
+        type: string
+      location:
+        description: >
+          Which input was used: fullpage, sidebar, or urlbar.
         type: string
       interaction:
         description: >
@@ -698,12 +714,14 @@ urlbar:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1842247
       - https://bugzilla.mozilla.org/show_bug.cgi?id=2003067
       - https://bugzilla.mozilla.org/show_bug.cgi?id=2008925
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=2009615
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1797265#c3
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1805717#c4
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1842247#c3
       - https://bugzilla.mozilla.org/show_bug.cgi?id=2003067
       - https://bugzilla.mozilla.org/show_bug.cgi?id=2008925
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=2009615
     data_sensitivity:
       - interaction
     notification_emails:

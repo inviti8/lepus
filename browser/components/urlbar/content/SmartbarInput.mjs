@@ -31,6 +31,10 @@ const { AppConstants } = ChromeUtils.importESModule(
  * @import { WebsiteChipContainer } from "chrome://browser/content/aiwindow/components/website-chip-container.mjs"
  */
 
+/**
+ * @typedef {"fullpage" | "sidebar" | "urlbar"} SapLocation
+ */
+
 const lazy = XPCOMUtils.declareLazy({
   ASRouter: "resource:///modules/asrouter/ASRouter.sys.mjs",
   BrowserSearchTelemetry:
@@ -717,6 +721,15 @@ export class SmartbarInput extends HTMLElement {
   }
 
   /**
+   * Gets the Smartbar location.
+   *
+   * @returns {SapLocation} The location of the smartbar
+   */
+  get sapLocation() {
+    return this.#isSidebarMode ? "sidebar" : "fullpage";
+  }
+
+  /**
    * Set smartbar action.
    *
    * @param {SmartbarAction} action
@@ -1334,6 +1347,7 @@ export class SmartbarInput extends HTMLElement {
     // Submit chat
     if (action === "chat") {
       this.controller.engagementEvent.record(event, {
+        location: this.sapLocation,
         searchString: committedValue,
         searchSource: this.getSearchSource(event),
         selType: "ask_button",
@@ -1350,6 +1364,7 @@ export class SmartbarInput extends HTMLElement {
         committedValue
       );
       this.controller.engagementEvent.record(event, {
+        location: this.sapLocation,
         searchString: committedValue,
         searchSource: this.getSearchSource(event),
         selType: "search_button",
@@ -1374,6 +1389,7 @@ export class SmartbarInput extends HTMLElement {
       let fixupInfo = Services.uriFixup.getFixupURIInfo(committedValue, flags);
       this.controller.engagementEvent.record(event, {
         searchString: committedValue,
+        location: this.sapLocation,
         searchSource: this.getSearchSource(event),
         selType: "navigate_button",
         result: null,
@@ -1547,7 +1563,9 @@ export class SmartbarInput extends HTMLElement {
     let selectedResult = result || this.view.selectedResult;
     this.controller.engagementEvent.record(event, {
       element,
+      location: this.sapLocation,
       selType,
+      searchSource: this.getSearchSource(event),
       searchString: typedValue,
       result: selectedResult || this._resultForCurrentValue || null,
     });
@@ -1774,6 +1792,8 @@ export class SmartbarInput extends HTMLElement {
       this.controller.engagementEvent.record(event, {
         result,
         element,
+        location: this.sapLocation,
+        searchSource: this.getSearchSource(event),
         searchString: this._lastSearchString,
         selType: "dismiss",
       });
@@ -1815,7 +1835,9 @@ export class SmartbarInput extends HTMLElement {
       this.controller.engagementEvent.record(event, {
         result,
         element,
+        location: this.sapLocation,
         selType: "canonized",
+        searchSource: this.getSearchSource(event),
         searchString: this._lastSearchString,
       });
       this._loadURL(this._untrimmedValue, event, where, openParams, browser);
@@ -1897,6 +1919,8 @@ export class SmartbarInput extends HTMLElement {
         this.controller.engagementEvent.record(event, {
           result,
           element,
+          location: this.sapLocation,
+          searchSource: this.getSearchSource(event),
           searchString,
           searchMode,
           selType: this.controller.engagementEvent.typeFromElement(
@@ -1947,6 +1971,8 @@ export class SmartbarInput extends HTMLElement {
           this.controller.engagementEvent.record(event, {
             result,
             element,
+            location: this.sapLocation,
+            searchSource: this.getSearchSource(event),
             searchString: this._lastSearchString,
             selType: this.controller.engagementEvent.typeFromElement(
               result,
@@ -2037,7 +2063,9 @@ export class SmartbarInput extends HTMLElement {
         this.controller.engagementEvent.record(event, {
           result,
           element,
+          location: this.sapLocation,
           selType: "tip",
+          searchSource: this.getSearchSource(event),
           searchString: this._lastSearchString,
         });
         return;
@@ -2053,7 +2081,9 @@ export class SmartbarInput extends HTMLElement {
           this.controller.engagementEvent.record(event, {
             result,
             element,
+            location: this.sapLocation,
             searchMode,
+            searchSource: this.getSearchSource(event),
             searchString: this._lastSearchString,
             selType: this.controller.engagementEvent.typeFromElement(
               result,
@@ -2068,7 +2098,9 @@ export class SmartbarInput extends HTMLElement {
         this.controller.engagementEvent.record(event, {
           result,
           element,
+          location: this.sapLocation,
           selType: "extension",
+          searchSource: this.getSearchSource(event),
           searchString: this._lastSearchString,
         });
 
@@ -2093,6 +2125,8 @@ export class SmartbarInput extends HTMLElement {
         this.controller.engagementEvent.record(event, {
           result,
           element,
+          location: this.sapLocation,
+          searchSource: this.getSearchSource(event),
           searchString: this._lastSearchString,
           selType: this.controller.engagementEvent.typeFromElement(
             result,
@@ -2110,6 +2144,8 @@ export class SmartbarInput extends HTMLElement {
         this.controller.engagementEvent.record(event, {
           result,
           element,
+          location: this.sapLocation,
+          searchSource: this.getSearchSource(event),
           searchString: this._lastSearchString,
           selType: this.controller.engagementEvent.typeFromElement(
             result,
@@ -2152,6 +2188,7 @@ export class SmartbarInput extends HTMLElement {
     this.controller.engagementEvent.record(event, {
       result,
       element,
+      location: this.sapLocation,
       searchString: this._lastSearchString,
       selType: this.controller.engagementEvent.typeFromElement(result, element),
       searchSource: this.getSearchSource(event),
@@ -3361,6 +3398,7 @@ export class SmartbarInput extends HTMLElement {
     // so this will be a no-op.
     if (this.focused) {
       this.controller.engagementEvent.record(event, {
+        location: this.sapLocation,
         searchString: this._lastSearchString,
         searchSource: this.getSearchSource(event),
       });
@@ -4154,6 +4192,8 @@ export class SmartbarInput extends HTMLElement {
     this.controller.engagementEvent.record(event, {
       result,
       element,
+      location: this.sapLocation,
+      searchSource: this.getSearchSource(event),
       searchString: this._lastSearchString,
       selType: element.dataset.command,
     });
@@ -5204,6 +5244,7 @@ export class SmartbarInput extends HTMLElement {
     // For now we detect that case by discarding the event on command, but we
     // may want to figure out a more robust way to detect abandonment.
     this.controller.engagementEvent.record(event, {
+      location: this.sapLocation,
       searchString: this._lastSearchString,
       searchSource: this.getSearchSource(event),
     });
@@ -5451,6 +5492,7 @@ export class SmartbarInput extends HTMLElement {
               relatedTarget: this.inputField,
             });
             this.controller.engagementEvent.record(blurEvent, {
+              location: this.sapLocation,
               searchString: this._lastSearchString,
               searchSource: this.getSearchSource(blurEvent),
             });
