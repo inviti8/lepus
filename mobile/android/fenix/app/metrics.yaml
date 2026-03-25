@@ -105,6 +105,7 @@ events:
 
           * default.action
           * default.suggestion
+          * default.digital_assistant
           * shortcut.action
           * shortcut.suggestion
         type: string
