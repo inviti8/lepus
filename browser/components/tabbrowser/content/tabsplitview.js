@@ -41,6 +41,8 @@
 
     #isClosing = false;
 
+    #isUnsplitting = false;
+
     #shouldMoveAllTabsAtOnce = true;
 
     #storedPanelWidths = new WeakMap();
@@ -326,7 +328,6 @@
 
       if (this.hasActiveTab || isSessionRestore) {
         this.#activate();
-        gBrowser.setIsSplitViewActive(this.hasActiveTab, this.#tabs);
       }
       // Attempt to update uriCount metric using the resulting tabs collection,
       // as tabs may not be added to the splitview if they are pinned etc.
@@ -350,6 +351,10 @@
      *   Valid values: "menu_separate", "icon_separate", "icon_close", "tab_close", "footer_separate".
      */
     unsplitTabs(trigger = null) {
+      if (this.#isUnsplitting) {
+        return;
+      }
+      this.#isUnsplitting = true;
       let telemetryTrigger = this.#isClosing ? null : trigger;
       // Record telemetry for split view end
       if (telemetryTrigger) {
@@ -359,7 +364,7 @@
 
         Glean.splitview.end.record({
           tab_layout,
-          telemetryTrigger,
+          trigger: telemetryTrigger,
         });
       }
 
@@ -403,7 +408,6 @@
 
       // We need to re-activate after removing one of the split view tabs
       this.#activate();
-      gBrowser.setIsSplitViewActive(true, this.#tabs);
     }
 
     /**
@@ -455,7 +459,6 @@
      */
     on_TabSelect(event) {
       this.hasActiveTab = event.target.splitview === this;
-      gBrowser.setIsSplitViewActive(this.hasActiveTab, this.#tabs);
       if (this.hasActiveTab) {
         this.#activate();
       } else {
