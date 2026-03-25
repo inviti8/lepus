@@ -155,6 +155,8 @@
 }
 
 .customize-menu {
+  --toggle-row-height: 42px;
+
   overflow: auto;
   height: 100%;
 
@@ -274,30 +276,20 @@
       fill: var(--newtab-element-secondary-color);
     }
 
-    .selector {
-      color: var(--newtab-text-primary-color);
-      width: 118px;
-      display: block;
-      border: 1px solid var(--border-color);
-      border-radius: var(--border-radius-small);
-      appearance: none;
-      padding-block: var(--space-small);
-      padding-inline: var(--space-small) var(--space-medium);
-      margin-inline-start: var(--space-xxsmall);
-      margin-block-end: var(--space-xxsmall);
-      -moz-context-properties: fill;
-      fill: var(--newtab-text-primary-color);
-      background: url('chrome://global/skin/icons/arrow-down-12.svg') right no-repeat;
-      background-size: 8px;
-      background-origin: content-box;
-      background-color: var(--newtab-background-color-secondary);
+    #shortcuts-toggle {
+      display: flex;
+      flex-direction: column;
 
-      &:hover {
-        background-color: var(--newtab-element-secondary-hover-color);
+      #row-selector {
+        width: 138px;
       }
 
-      &:dir(rtl) {
-        background-position-x: left;
+      // @nova-cleanup(remove-conditional): Remove .nova-enabled selector, make default behavior for #shortcuts-toggle
+      .nova-enabled & {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        height: var(--toggle-row-height); // setting fixed height so section doesn't resize and move pixels when it's toggled on/off
       }
     }
 
@@ -408,7 +400,7 @@
 // Make sure form elements under the "Shortcuts" subsection don't change position on focus
 // by always having a 2px box shadow around them - one that blends in with the background.
 .home-section .section {
-  .customize-menu-checkbox, .selector {
+  .customize-menu-checkbox {
     outline: 0;
     box-shadow: 0 0 0 2px light-dark(var(--newtab-background-color), var(--newtab-background-color-dark));
   }
@@ -424,7 +416,7 @@
 // by setting a bright 2px box shadow in active and focus states.
 .home-section .section
 {
-  .customize-menu-checkbox, .selector {
+  .customize-menu-checkbox {
     &:is(:focus-visible) {
       box-shadow: 0 0 0 2px var(--color-accent-primary);
       outline: var(--focus-outline); // For Windows high-contrast mode
@@ -606,5 +598,21 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-large);
+  }
+
+}
+
+.widgets-mgmt-panel-container {
+  margin-block: var(--space-medium);
+}
+
+// @nova-cleanup(remove-conditional): Remove .nova-enabled selector, make default behavior for #shortcuts-section and #row-selector
+.nova-enabled {
+  #shortcuts-section {
+    margin-block: var(--space-medium);
+  }
+
+  .section #shortcuts-toggle #row-selector {
+    width: unset;
   }
 }

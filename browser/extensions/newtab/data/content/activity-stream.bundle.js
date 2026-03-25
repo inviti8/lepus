@@ -15230,7 +15230,10 @@ function WidgetsManagementPanel({
     timerEnabled,
     listsEnabled
   } = enabledWidgets;
-  return /*#__PURE__*/external_React_default().createElement("div", null, /*#__PURE__*/external_React_default().createElement("moz-box-button", {
+  return /*#__PURE__*/external_React_default().createElement("div", {
+    id: "widgets-management-panel",
+    className: "widgets-mgmt-panel-container"
+  }, /*#__PURE__*/external_React_default().createElement("moz-box-button", {
     onClick: togglePanel,
     "data-l10n-id": "newtab-widget-manage-widget-button"
   }), /*#__PURE__*/external_React_default().createElement(external_ReactTransitionGroup_namespaceObject.CSSTransition, {
@@ -15367,7 +15370,7 @@ class ContentSection extends (external_React_default()).PureComponent {
       eventSource
     } = e.target.dataset;
     let value;
-    if (e.target.nodeName === "SELECT") {
+    if (e.target.nodeName === "MOZ-SELECT") {
       value = parseInt(e.target.value, 10);
     } else if (e.target.nodeName === "INPUT") {
       value = e.target.checked;
@@ -15467,23 +15470,7 @@ class ContentSection extends (external_React_default()).PureComponent {
       activeWallpaper: activeWallpaper,
       exitEventFired: exitEventFired,
       onSubpanelToggle: onSubpanelToggle
-    })), !mayHaveWidgets && /*#__PURE__*/external_React_default().createElement("span", {
-      className: "divider",
-      role: "separator"
-    })), mayHaveWidgets && (novaEnabled ? /*#__PURE__*/external_React_default().createElement(WidgetsManagementPanel, {
-      enabledSections: enabledSections,
-      enabledWidgets: enabledWidgets,
-      mayHaveWeather: mayHaveWeather,
-      mayHaveTimerWidget: mayHaveTimerWidget,
-      mayHaveListsWidget: mayHaveListsWidget,
-      mayHaveWeatherForecast: mayHaveWeatherForecast,
-      weatherDisplay: weatherDisplay,
-      setPref: setPref,
-      exitEventFired: exitEventFired,
-      onSubpanelToggle: onSubpanelToggle,
-      togglePanel: toggleWidgetsManagementPanel,
-      showPanel: showWidgetsManagementPanel
-    }) : /*#__PURE__*/external_React_default().createElement("div", {
+    }))), mayHaveWidgets && !novaEnabled && /*#__PURE__*/external_React_default().createElement("div", {
       className: "widgets-section"
     }, /*#__PURE__*/external_React_default().createElement("div", {
       className: "category-header"
@@ -15521,9 +15508,6 @@ class ContentSection extends (external_React_default()).PureComponent {
       "data-preference": "widgets.focusTimer.enabled",
       "data-event-source": "WIDGET_TIMER",
       "data-l10n-id": "newtab-custom-widget-timer-toggle"
-    })), /*#__PURE__*/external_React_default().createElement("span", {
-      className: "divider",
-      role: "separator"
     })))), /*#__PURE__*/external_React_default().createElement("div", {
       className: "settings-toggles"
     }, !mayHaveWidgets && mayHaveWeather && /*#__PURE__*/external_React_default().createElement("div", {
@@ -15536,7 +15520,10 @@ class ContentSection extends (external_React_default()).PureComponent {
       "data-preference": "showWeather",
       "data-event-source": "WEATHER",
       "data-l10n-id": "newtab-custom-weather-toggle"
-    })), /*#__PURE__*/external_React_default().createElement("div", {
+    })), /*#__PURE__*/external_React_default().createElement("span", {
+      className: "divider",
+      role: "separator"
+    }), /*#__PURE__*/external_React_default().createElement("div", {
       id: "shortcuts-section",
       className: "section"
     }, /*#__PURE__*/external_React_default().createElement("moz-toggle", {
@@ -15545,7 +15532,7 @@ class ContentSection extends (external_React_default()).PureComponent {
       ontoggle: this.onPreferenceSelect,
       "data-preference": "feeds.topsites",
       "data-event-source": "TOP_SITES",
-      "data-l10n-id": "newtab-custom-shortcuts-toggle"
+      "data-l10n-id": novaEnabled ? "newtab-custom-shortcuts-toggle-rows" : "newtab-custom-shortcuts-toggle"
     }, /*#__PURE__*/external_React_default().createElement("div", {
       slot: "nested"
     }, /*#__PURE__*/external_React_default().createElement("div", {
@@ -15553,32 +15540,52 @@ class ContentSection extends (external_React_default()).PureComponent {
     }, /*#__PURE__*/external_React_default().createElement("div", {
       className: "more-information",
       ref: this.topSitesDrawerRef
-    }, /*#__PURE__*/external_React_default().createElement("select", {
+    }, /*#__PURE__*/external_React_default().createElement("moz-select", {
       id: "row-selector",
       className: "selector",
       name: "row-count",
       "data-preference": "topSitesRows",
       value: topSitesRowsCount,
-      onChange: this.onPreferenceSelect,
-      disabled: !topSitesEnabled,
-      "aria-labelledby": "custom-shortcuts-title"
-    }, /*#__PURE__*/external_React_default().createElement("option", {
-      value: "1",
-      "data-l10n-id": "newtab-custom-row-selector",
-      "data-l10n-args": "{\"num\": 1}"
-    }), /*#__PURE__*/external_React_default().createElement("option", {
-      value: "2",
-      "data-l10n-id": "newtab-custom-row-selector",
-      "data-l10n-args": "{\"num\": 2}"
-    }), /*#__PURE__*/external_React_default().createElement("option", {
-      value: "3",
-      "data-l10n-id": "newtab-custom-row-selector",
-      "data-l10n-args": "{\"num\": 3}"
-    }), /*#__PURE__*/external_React_default().createElement("option", {
-      value: "4",
-      "data-l10n-id": "newtab-custom-row-selector",
-      "data-l10n-args": "{\"num\": 4}"
-    }))))))), pocketRegion && /*#__PURE__*/external_React_default().createElement("div", {
+      "aria-labelledby": "custom-shortcuts-title",
+      onChange: this.onPreferenceSelect
+    }, [1, 2, 3, 4].map(num =>
+    // @nova-cleanup(remove-conditional): Remove the conditional and "else" block after Nova lands
+    novaEnabled ? /*#__PURE__*/external_React_default().createElement("moz-option", {
+      key: num,
+      value: String(num),
+      label: String(num)
+    }) : /*#__PURE__*/external_React_default().createElement("moz-option", {
+      key: num,
+      value: String(num),
+      "data-l10n-id": "newtab-custom-row-selector2",
+      "data-l10n-args": `{"num": ${num}}`
+    })))))))),
+    // @nova-cleanup(remove-conditional): Remove novaEnabled check, keep divider
+    novaEnabled && mayHaveWidgets && /*#__PURE__*/external_React_default().createElement("span", {
+      className: "divider",
+      role: "separator"
+    }),
+    // @nova-cleanup(remove-conditional): Remove novaEnabled check, keep WidgetsManagementPanel
+    novaEnabled && mayHaveWidgets && /*#__PURE__*/external_React_default().createElement(WidgetsManagementPanel, {
+      enabledSections: enabledSections,
+      enabledWidgets: enabledWidgets,
+      mayHaveWeather: mayHaveWeather,
+      mayHaveTimerWidget: mayHaveTimerWidget,
+      mayHaveListsWidget: mayHaveListsWidget,
+      mayHaveWeatherForecast: mayHaveWeatherForecast,
+      weatherDisplay: weatherDisplay,
+      setPref: setPref,
+      exitEventFired: exitEventFired,
+      onSubpanelToggle: onSubpanelToggle,
+      togglePanel: toggleWidgetsManagementPanel,
+      showPanel: showWidgetsManagementPanel
+    }),
+    // @nova-cleanup(remove-conditional): Remove novaEnabled check, keep divider
+    // The pocketRegion check makes sure there is only one divider present if it's false
+    novaEnabled && pocketRegion && /*#__PURE__*/external_React_default().createElement("span", {
+      className: "divider",
+      role: "separator"
+    }), pocketRegion && /*#__PURE__*/external_React_default().createElement("div", {
       id: "pocket-section",
       className: "section"
     }, /*#__PURE__*/external_React_default().createElement("moz-toggle", ContentSection_extends({
@@ -15717,7 +15724,8 @@ class _CustomizeMenu extends (external_React_default()).PureComponent {
       ref: this.customizeMenuRef,
       className: "customize-menu-animate-wrapper"
     }, /*#__PURE__*/external_React_default().createElement("div", {
-      className: `customize-menu ${this.state.subpanelOpen ? "subpanel-open" : ""}`,
+      // @nova-cleanup(remove-conditional): Remove nova-enabled class
+      className: `customize-menu ${this.state.subpanelOpen ? "subpanel-open" : ""} ${novaEnabled ? "nova-enabled" : ""}`,
       role: "dialog",
       "data-l10n-id": "newtab-settings-dialog-label"
     }, /*#__PURE__*/external_React_default().createElement("div", {

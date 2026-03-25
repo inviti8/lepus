@@ -77,6 +77,18 @@ describe("ContentSection", () => {
     assert.calledWith(DEFAULT_PROPS.setPref, "foo", true);
   });
 
+  it("should call setPref with parsed integer value for MOZ-SELECT", () => {
+    wrapper.instance().onPreferenceSelect({
+      target: {
+        nodeName: "MOZ-SELECT",
+        value: "3",
+        dataset: { preference: "topSitesRows" },
+      },
+    });
+
+    assert.calledWith(DEFAULT_PROPS.setPref, "topSitesRows", 3);
+  });
+
   it("should have data-event-source attributes on relevant pref changing inputs", () => {
     wrapper = mount(<ContentSection {...DEFAULT_PROPS} />);
     assert.equal(

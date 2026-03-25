@@ -97,9 +97,10 @@ export class _CustomizeMenu extends React.PureComponent {
             className="customize-menu-animate-wrapper"
           >
             <div
+              // @nova-cleanup(remove-conditional): Remove nova-enabled class
               className={`customize-menu ${
                 this.state.subpanelOpen ? "subpanel-open" : ""
-              }`}
+              } ${novaEnabled ? "nova-enabled" : ""}`}
               role="dialog"
               data-l10n-id="newtab-settings-dialog-label"
             >

@@ -224,14 +224,20 @@ newtab-error-fallback-refresh-link = Refresh page to try again.
 
 ## Customization Menu
 
+#  (developer note): @nova-cleanup(remove-string): Remove old string once Nova lands. The newtab-custom-shortcuts-nova string will take over
 newtab-custom-shortcuts-toggle =
   .label = Shortcuts
   .description = Sites you save or visit
 
+newtab-custom-shortcuts-toggle-rows =
+    .label = Shortcuts
+    .description = Number of rows
+
 # Variables
 #   $num (number) - Number of rows to display
-newtab-custom-row-selector =
-        { $num ->
+#  (developer note): @nova-cleanup(remove-string): Remove string once Nova lands. We won't be using "row"/"rows" anymore for the dropdown
+newtab-custom-row-selector2 =
+        .label = { $num ->
             [one] { $num } row
            *[other] { $num } rows
         }

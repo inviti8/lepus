@@ -109,7 +109,7 @@ function WidgetsManagementPanel({
   const { timerEnabled, listsEnabled } = enabledWidgets;
 
   return (
-    <div>
+    <div id="widgets-management-panel" className="widgets-mgmt-panel-container">
       <moz-box-button
         onClick={togglePanel}
         data-l10n-id="newtab-widget-manage-widget-button"
