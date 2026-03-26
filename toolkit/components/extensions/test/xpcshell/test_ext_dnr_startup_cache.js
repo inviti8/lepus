@@ -217,14 +217,10 @@ add_task(async function test_dnr_startup_cache_save_and_load() {
       {
         metric: "startupCacheEntries",
         label: "miss",
-        mirroredName: "extensions.apis.dnr.startup_cache_entries",
-        mirroredType: "keyedScalar",
       },
       {
         metric: "startupCacheEntries",
         label: "hit",
-        mirroredName: "extensions.apis.dnr.startup_cache_entries",
-        mirroredType: "keyedScalar",
       },
     ],
     "on loading dnr rules for newly installed extension"
@@ -315,8 +311,6 @@ add_task(async function test_dnr_startup_cache_save_and_load() {
             metric: "startupCacheEntries",
             label: "hit",
             expectedGetValue: 1,
-            mirroredName: "extensions.apis.dnr.startup_cache_entries",
-            mirroredType: "keyedScalar",
           },
         ],
         "after app startup and expected startup cache hit"
@@ -331,8 +325,6 @@ add_task(async function test_dnr_startup_cache_save_and_load() {
           {
             metric: "startupCacheEntries",
             label: "miss",
-            mirroredName: "extensions.apis.dnr.startup_cache_entries",
-            mirroredType: "keyedScalar",
           },
         ],
         "after DNR store loaded startup cache data"
@@ -367,8 +359,6 @@ add_task(async function test_dnr_startup_cache_save_and_load() {
             metric: "startupCacheEntries",
             label: "miss",
             expectedGetValue: 1,
-            mirroredName: "extensions.apis.dnr.startup_cache_entries",
-            mirroredType: "keyedScalar",
           },
         ],
         "after app startup and expected startup cache miss"
@@ -378,8 +368,6 @@ add_task(async function test_dnr_startup_cache_save_and_load() {
           {
             metric: "startupCacheEntries",
             label: "hit",
-            mirroredName: "extensions.apis.dnr.startup_cache_entries",
-            mirroredType: "keyedScalar",
           },
         ],
         "after DNR store loaded startup cache data"

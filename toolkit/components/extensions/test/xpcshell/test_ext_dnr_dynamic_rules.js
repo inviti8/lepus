@@ -1301,8 +1301,6 @@ add_task(async function test_dynamic_rules_telemetry() {
       },
       {
         metric: "evaluateRulesCountMax",
-        mirroredName: "extensions.apis.dnr.evaluate_rules_count_max",
-        mirroredType: "scalar",
       },
     ],
     "before any request have been intercepted"
@@ -1323,8 +1321,6 @@ add_task(async function test_dynamic_rules_telemetry() {
       },
       {
         metric: "evaluateRulesCountMax",
-        mirroredName: "extensions.apis.dnr.evaluate_rules_count_max",
-        mirroredType: "scalar",
       },
     ],
     "after restricted request have been intercepted (but no rules evaluated)"
@@ -1364,8 +1360,6 @@ add_task(async function test_dynamic_rules_telemetry() {
     [
       {
         metric: "evaluateRulesCountMax",
-        mirroredName: "extensions.apis.dnr.evaluate_rules_count_max",
-        mirroredType: "scalar",
         expectedGetValue: expectedEvaluateRulesCountMax,
       },
     ],
@@ -1405,8 +1399,6 @@ add_task(async function test_dynamic_rules_telemetry() {
     [
       {
         metric: "evaluateRulesCountMax",
-        mirroredName: "extensions.apis.dnr.evaluate_rules_count_max",
-        mirroredType: "scalar",
         expectedGetValue: expectedEvaluateRulesCountMax,
       },
     ],
@@ -1429,8 +1421,6 @@ add_task(async function test_dynamic_rules_telemetry() {
     [
       {
         metric: "evaluateRulesCountMax",
-        mirroredName: "extensions.apis.dnr.evaluate_rules_count_max",
-        mirroredType: "scalar",
         expectedGetValue: expectedEvaluateRulesCountMax,
       },
     ],

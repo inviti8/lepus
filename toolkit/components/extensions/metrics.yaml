@@ -273,19 +273,21 @@ extensions.apis.dnr:
     bugs:
       - https://bugzilla.mozilla.org/1803363/
       - https://bugzilla.mozilla.org/1850890/
+      - https://bugzilla.mozilla.org/1881406/
       - https://bugzilla.mozilla.org/1881399/
+      - https://bugzilla.mozilla.org/1946276/
       - https://bugzilla.mozilla.org/1946282/
       - https://bugzilla.mozilla.org/1984252/
+      - https://bugzilla.mozilla.org/1984461/
+      - https://bugzilla.mozilla.org/2018311/
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1803363#c11
+      - https://bugzilla.mozilla.org/2018311/
     data_sensitivity:
       - technical
     labels:
       - hit
       - miss
-    telemetry_mirror: EXTENSIONS_APIS_DNR_STARTUP_CACHE_ENTRIES
-    no_lint:
-      - GIFFT_NON_PING_LIFETIME
 
   validate_rules_time:
     type: timing_distribution
@@ -341,13 +343,17 @@ extensions.apis.dnr:
       - https://bugzilla.mozilla.org/1803363/
       - https://bugzilla.mozilla.org/1850890/
       - https://bugzilla.mozilla.org/1881399/
+      - https://bugzilla.mozilla.org/1881406/
+      - https://bugzilla.mozilla.org/1946276/
       - https://bugzilla.mozilla.org/1946282/
       - https://bugzilla.mozilla.org/1984252/
+      - https://bugzilla.mozilla.org/1984461/
+      - https://bugzilla.mozilla.org/2018311/
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1803363#c11
+      - https://bugzilla.mozilla.org/2018311/
     data_sensitivity:
       - technical
-    telemetry_mirror: EXTENSIONS_APIS_DNR_EVALUATE_RULES_COUNT_MAX
 
 extensions.data:
 
