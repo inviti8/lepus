@@ -1907,6 +1907,14 @@ export var Policies = {
     },
   },
 
+  IPProtectionAvailable: {
+    onBeforeAddons(manager, param) {
+      if (!param) {
+        setAndLockPref("browser.ipProtection.enabled", false);
+      }
+    },
+  },
+
   InstallAddonsPermission: {
     onBeforeUIStartup(manager, param) {
       if ("Allow" in param) {
