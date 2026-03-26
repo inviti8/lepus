@@ -146,8 +146,6 @@ add_task(async function test_dnr_startup_cache_save_and_load() {
     [
       {
         metric: "validateRulesTime",
-        mirroredName: "WEBEXT_DNR_VALIDATE_RULES_MS",
-        mirroredType: "histogram",
       },
     ],
     "before any test extensions have been loaded"
@@ -168,8 +166,6 @@ add_task(async function test_dnr_startup_cache_save_and_load() {
     [
       {
         metric: "validateRulesTime",
-        mirroredName: "WEBEXT_DNR_VALIDATE_RULES_MS",
-        mirroredType: "histogram",
         expectedSamplesCount: 2,
       },
     ],
@@ -195,24 +191,16 @@ add_task(async function test_dnr_startup_cache_save_and_load() {
     [
       {
         metric: "startupCacheWriteTime",
-        mirroredName: "WEBEXT_DNR_STARTUPCACHE_WRITE_MS",
-        mirroredType: "histogram",
       },
       {
         metric: "startupCacheWriteSize",
-        mirroredName: "WEBEXT_DNR_STARTUPCACHE_WRITE_BYTES",
-        mirroredType: "histogram",
       },
       // Expected no startup cache file to be loaded or used for a newly installed extension.
       {
         metric: "startupCacheReadSize",
-        mirroredName: "WEBEXT_DNR_STARTUPCACHE_READ_BYTES",
-        mirroredType: "histogram",
       },
       {
         metric: "startupCacheReadTime",
-        mirroredName: "WEBEXT_DNR_STARTUPCACHE_READ_MS",
-        mirroredType: "histogram",
       },
       {
         metric: "startupCacheEntries",
@@ -230,14 +218,10 @@ add_task(async function test_dnr_startup_cache_save_and_load() {
     [
       {
         metric: "startupCacheWriteTime",
-        mirroredName: "WEBEXT_DNR_STARTUPCACHE_WRITE_MS",
-        mirroredType: "histogram",
         expectedSamplesCount: 1,
       },
       {
         metric: "startupCacheWriteSize",
-        mirroredName: "WEBEXT_DNR_STARTUPCACHE_WRITE_BYTES",
-        mirroredType: "histogram",
         expectedSamplesCount: 1,
       },
     ],
@@ -292,14 +276,10 @@ add_task(async function test_dnr_startup_cache_save_and_load() {
         [
           {
             metric: "startupCacheReadSize",
-            mirroredName: "WEBEXT_DNR_STARTUPCACHE_READ_BYTES",
-            mirroredType: "histogram",
             expectedSamplesCount: 1,
           },
           {
             metric: "startupCacheReadTime",
-            mirroredName: "WEBEXT_DNR_STARTUPCACHE_READ_MS",
-            mirroredType: "histogram",
             expectedSamplesCount: 1,
           },
         ],
@@ -319,8 +299,6 @@ add_task(async function test_dnr_startup_cache_save_and_load() {
         [
           {
             metric: "validateRulesTime",
-            mirroredName: "WEBEXT_DNR_VALIDATE_RULES_MS",
-            mirroredType: "histogram",
           },
           {
             metric: "startupCacheEntries",
@@ -334,20 +312,14 @@ add_task(async function test_dnr_startup_cache_save_and_load() {
         [
           {
             metric: "validateRulesTime",
-            mirroredName: "WEBEXT_DNR_VALIDATE_RULES_MS",
-            mirroredType: "histogram",
             expectedSamplesCount: 1,
           },
           {
             metric: "startupCacheReadSize",
-            mirroredName: "WEBEXT_DNR_STARTUPCACHE_READ_BYTES",
-            mirroredType: "histogram",
             expectedSamplesCount: 1,
           },
           {
             metric: "startupCacheReadTime",
-            mirroredName: "WEBEXT_DNR_STARTUPCACHE_READ_MS",
-            mirroredType: "histogram",
             expectedSamplesCount: 1,
           },
         ],
