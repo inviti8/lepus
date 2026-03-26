@@ -1428,6 +1428,10 @@ class ScrollContainerFrame : public nsContainerFrame,
   // encountered.
   Maybe<uint32_t> mIsFirstScrollableFrameSequenceNumber;
 
+  // Computed style of ::webkit-scrollbar pseudo element for this scroll
+  // container.
+  RefPtr<ComputedStyle> mWebKitScrollbarStyle;
+
   // Representing whether the APZC corresponding to this frame is now in the
   // middle of handling a gesture (e.g. a pan gesture).
   InScrollingGesture mInScrollingGesture : 1;
