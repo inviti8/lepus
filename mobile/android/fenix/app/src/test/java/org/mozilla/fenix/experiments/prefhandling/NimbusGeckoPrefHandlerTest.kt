@@ -121,6 +121,10 @@ class NimbusGeckoPrefHandlerTest {
             ),
             isUserSet = false,
         )
+        every { mockEngine.getBrowserPrefs(any(), any(), any()) } answers {
+            val onSuccess = secondArg<(List<BrowserPreference<*>>) -> Unit>()
+            onSuccess(listOf(BrowserPreference<String>(pref = TEST_PREF, defaultValue = "original-value", hasUserChangedValue = false, prefType = BrowserPrefType.STRING)))
+        }
         every { mockEngine.setBrowserPrefs(any(), any(), any()) } answers {
             val onSuccess = secondArg<(Map<String, Boolean>) -> Unit>()
             onSuccess(mapOf(TEST_PREF to true))
@@ -149,6 +153,10 @@ class NimbusGeckoPrefHandlerTest {
             ),
             isUserSet = false,
         )
+        every { mockEngine.getBrowserPrefs(any(), any(), any()) } answers {
+            val onSuccess = secondArg<(List<BrowserPreference<*>>) -> Unit>()
+            onSuccess(listOf(BrowserPreference<String>(pref = TEST_PREF, defaultValue = "original-value", hasUserChangedValue = false, prefType = BrowserPrefType.STRING)))
+        }
         every { mockEngine.setBrowserPrefs(any(), any(), any()) } answers {
             val onSuccess = secondArg<(Map<String, Boolean>) -> Unit>()
             // Failed to set
@@ -182,6 +190,10 @@ class NimbusGeckoPrefHandlerTest {
             isUserSet = false,
         )
 
+        every { mockEngine.getBrowserPrefs(any(), any(), any()) } answers {
+            val onSuccess = secondArg<(List<BrowserPreference<*>>) -> Unit>()
+            onSuccess(listOf(BrowserPreference<String>(pref = TEST_PREF, defaultValue = "original-value", hasUserChangedValue = false, prefType = BrowserPrefType.STRING)))
+        }
         every { mockEngine.setBrowserPrefs(any(), any(), any()) } answers {
             val onSuccess = secondArg<(Map<String, Boolean>) -> Unit>()
             // No other valid items to set

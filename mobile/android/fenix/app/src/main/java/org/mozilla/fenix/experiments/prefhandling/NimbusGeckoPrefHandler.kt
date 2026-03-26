@@ -250,9 +250,13 @@ class NimbusGeckoPrefHandler(
 
         geckoScope.launch {
             // All preference values from Nimbus arrive as strings.
-            // Type information from gecko is needed to know how to parse.
-            if (preferenceTypes.isEmpty() || newPrefsState.any { it.prefString() !in preferenceTypes }) {
-                fetchPrefTypeInfo(newPrefsState.map { it.prefString() }).await()
+            // Type information from Gecko is needed to know how to
+            // parse and value information for storing the original preference value.
+            if (preferenceTypes.isEmpty() ||
+            newPrefsState.any { it.prefString() !in preferenceTypes } ||
+            newPrefsState.any { getPreferenceState(it.prefString())?.geckoValue == null }
+            ) {
+                getPreferenceStateFromGecko().await()
             }
 
             val setters: List<SetBrowserPreference<*>> =
