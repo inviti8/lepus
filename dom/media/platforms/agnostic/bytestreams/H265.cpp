@@ -6,7 +6,6 @@
 
 #include <stdint.h>
 
-
 #include "AnnexB.h"
 #include "BitReader.h"
 #include "BitWriter.h"

@@ -4,7 +4,6 @@
 
 #include "AudioDriftCorrection.h"
 
-
 #include "AudioResampler.h"
 #include "DriftController.h"
 

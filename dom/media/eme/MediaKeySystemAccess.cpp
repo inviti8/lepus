@@ -4,7 +4,6 @@
 
 #include "mozilla/dom/MediaKeySystemAccess.h"
 
-
 #include "DecoderDoctorDiagnostics.h"
 #include "DecoderTraits.h"
 #include "MP4Decoder.h"

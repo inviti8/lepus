@@ -8,7 +8,6 @@
 #include "InputUtils.h"
 #include "gtest/gtest.h"
 
-
 class APZCAxisLockCompatTester : public APZCTreeManagerTester,
                                  public testing::WithParamInterface<int> {
  public:

@@ -9,7 +9,6 @@
 
 #include "base/histogram.h"
 
-
 #include <string>
 
 #include "base/logging.h"

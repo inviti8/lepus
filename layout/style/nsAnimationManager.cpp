@@ -4,7 +4,6 @@
 
 #include "nsAnimationManager.h"
 
-
 #include <algorithm>  // std::stable_sort
 
 #include "TimelineManager.h"

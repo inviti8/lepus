@@ -12,7 +12,6 @@
 #include "mozilla/layers/MatrixMessage.h"
 #include "nsRefreshObservers.h"
 
-
 class nsIContent;
 class nsIWidget;
 class nsPresContext;

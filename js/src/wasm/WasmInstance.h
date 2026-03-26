@@ -22,7 +22,6 @@
 #include "mozilla/Atomics.h"
 #include "mozilla/Maybe.h"
 
-
 #include "gc/Barrier.h"
 #include "js/shadow/Zone.h"  // for BarrierState
 #include "js/Stack.h"        // JS::NativeStackLimit

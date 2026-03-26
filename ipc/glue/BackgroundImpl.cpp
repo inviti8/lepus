@@ -46,7 +46,6 @@
 #include "nsXPCOMPrivate.h"
 #include "prthread.h"
 
-
 #ifdef RELEASE_OR_BETA
 #  define THREADSAFETY_ASSERT MOZ_ASSERT
 #else

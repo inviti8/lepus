@@ -5,7 +5,6 @@
 #ifndef DOM_FS_CHILD_FILESYSTEMMANAGER_H_
 #define DOM_FS_CHILD_FILESYSTEMMANAGER_H_
 
-
 #include "mozilla/MozPromise.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/dom/FileSystemManagerChild.h"
