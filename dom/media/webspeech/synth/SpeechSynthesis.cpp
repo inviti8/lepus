@@ -168,8 +168,8 @@ void SpeechSynthesis::Cancel() {
     mSpeechQueue.Clear();
   }
 
-  if (mCurrentTask) {
-    mCurrentTask->Cancel();
+  if (RefPtr<nsSpeechTask> task = mCurrentTask) {
+    task->Cancel();
   }
 }
 
