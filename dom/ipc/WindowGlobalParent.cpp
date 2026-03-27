@@ -1810,11 +1810,6 @@ IPCResult WindowGlobalParent::RecvSetCookies(
     const nsCString& aBaseDomain, const OriginAttributes& aOriginAttributes,
     nsIURI* aHost, bool aFromHttp, bool aIsThirdParty,
     const nsTArray<CookieStruct>& aCookies) {
-  if (aFromHttp) {
-    return IPC_FAIL(this,
-                    "Invalid fromHttp in SetCookies from content process");
-  }
-
   // Get CookieServiceParent via
   // ContentParent->NeckoParent->CookieServiceParent.
   ContentParent* contentParent = GetContentParent();
@@ -1827,11 +1822,6 @@ IPCResult WindowGlobalParent::RecvSetCookies(
       LoneManagedOrNullAsserts(neckoParent->ManagedPCookieServiceParent());
   NS_ENSURE_TRUE(csParent, IPC_OK());
   auto* cs = static_cast<net::CookieServiceParent*>(csParent);
-
-  if (!cs->ContentProcessHasCookie(aBaseDomain, aOriginAttributes)) {
-    return IPC_FAIL(this,
-                    "Content process not authorized for this cookie domain");
-  }
 
   return cs->SetCookies(aBaseDomain, aOriginAttributes, aHost, aFromHttp,
                         aIsThirdParty, aCookies, GetBrowsingContext());

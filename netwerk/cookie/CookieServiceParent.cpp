@@ -108,10 +108,10 @@ bool CookieServiceParent::ContentProcessHasCookie(const Cookie& cookie) {
 }
 
 bool CookieServiceParent::ContentProcessHasCookie(
-    const nsACString& aBaseDomain, const OriginAttributes& aOriginAttributes) {
+    const nsACString& aHost, const OriginAttributes& aOriginAttributes) {
   nsCString baseDomain;
   if (NS_WARN_IF(NS_FAILED(CookieCommons::GetBaseDomainFromHost(
-          mTLDService, aBaseDomain, baseDomain)))) {
+          mTLDService, aHost, baseDomain)))) {
     return false;
   }
 
@@ -277,19 +277,10 @@ IPCResult CookieServiceParent::RecvGetCookieList(
     return IPC_FAIL(this, "aHost must not be null");
   }
 
-  nsAutoCString baseDomain;
-  bool requireAHostMatch = false;
-  if (NS_WARN_IF(NS_FAILED(CookieCommons::GetBaseDomain(
-          mTLDService, aHost, baseDomain, requireAHostMatch)))) {
-    return IPC_FAIL(this, "Invalid host URI in GetCookieList");
-  }
-
+  // we append outgoing cookie info into a list here so the ContentParent can
+  // filter cookies that do not need to go to certain ContentProcesses
   for (const auto& attrs : aAttrsList) {
-    CookieKey cookieKey(baseDomain, attrs);
-    if (!mCookieKeysInContent.MaybeGet(cookieKey).isSome()) {
-      return IPC_FAIL(this,
-                      "Content process not authorized for this cookie domain");
-    }
+    UpdateCookieInContentList(aHost, attrs);
   }
 
   nsTArray<RefPtr<Cookie>> foundCookieList;
@@ -319,11 +310,6 @@ IPCResult CookieServiceParent::RecvSetCookies(
     const nsCString& aBaseDomain, const OriginAttributes& aOriginAttributes,
     nsIURI* aHost, bool aFromHttp, bool aIsThirdParty,
     const nsTArray<CookieStruct>& aCookies) {
-  if (aFromHttp) {
-    return IPC_FAIL(this,
-                    "Invalid fromHttp in SetCookies from content process");
-  }
-
   if (!ContentProcessHasCookie(aBaseDomain, aOriginAttributes)) {
     return IPC_FAIL(this, "Invalid set-cookie request from content process");
   }
