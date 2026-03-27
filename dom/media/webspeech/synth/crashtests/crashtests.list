@@ -1,2 +1,3 @@
 skip-if(!cocoaWidget) pref(media.webspeech.synth.enabled,true) load 1230428.html # bug 1230428
 pref(media.webspeech.synth.enabled,true) pref(media.webspeech.synth.test,true) load 2024470.html
+pref(media.webspeech.synth.enabled,true) pref(media.webspeech.synth.test,true) load 2024774.html
