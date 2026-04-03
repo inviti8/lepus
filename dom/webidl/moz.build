@@ -705,8 +705,8 @@ WEBIDL_FILES = [
     "HTMLOptionsCollection.webidl",
     "HTMLOutputElement.webidl",
     "HTMLParagraphElement.webidl",
-    "HTMLPeltElement.webidl",  # LEPUS
     "HTMLParamElement.webidl",
+    "HTMLPeltElement.webidl",  # LEPUS
     "HTMLPictureElement.webidl",
     "HTMLPreElement.webidl",
     "HTMLProgressElement.webidl",
