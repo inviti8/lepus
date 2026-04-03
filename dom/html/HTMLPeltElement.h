@@ -28,15 +28,15 @@ class HTMLPeltElement final : public nsGenericHTMLElement {
   void GetSrc(nsAString& aResult) const {
     GetHTMLAttr(nsGkAtoms::src, aResult);
   }
-  void SetSrc(const nsAString& aValue, ErrorResult& aError) {
-    SetHTMLAttr(nsGkAtoms::src, aValue, aError);
+  void SetSrc(const nsAString& aValue) {
+    SetHTMLAttr(nsGkAtoms::src, aValue);
   }
 
   void GetScale(nsAString& aResult) const {
     GetHTMLAttr(nsGkAtoms::scale, aResult);
   }
-  void SetScale(const nsAString& aValue, ErrorResult& aError) {
-    SetHTMLAttr(nsGkAtoms::scale, aValue, aError);
+  void SetScale(const nsAString& aValue) {
+    SetHTMLAttr(nsGkAtoms::scale, aValue);
   }
 
   // nsIContent overrides
