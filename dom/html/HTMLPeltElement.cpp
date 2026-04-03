@@ -7,6 +7,7 @@
 #include "mozilla/dom/HTMLPeltElement.h"
 
 #include "mozilla/PeltRegistry.h"
+#include "mozilla/dom/FragmentOrElement.h"
 #include "mozilla/dom/HTMLPeltElementBinding.h"
 #include "nsContentUtils.h"
 #include "nsGkAtoms.h"
@@ -42,7 +43,7 @@ void HTMLPeltElement::RegisterWithPeltRegistry() {
   for (nsIContent* child = GetFirstChild(); child;
        child = child->GetNextSibling()) {
     if (child->IsSVGElement(nsGkAtoms::svg)) {
-      child->AsElement()->GetOuterHTML(svgSource);
+      static_cast<dom::FragmentOrElement*>(child)->GetMarkup(true, svgSource);
       break;
     }
   }
