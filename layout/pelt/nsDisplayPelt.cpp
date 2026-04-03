@@ -7,6 +7,7 @@
 #include "nsDisplayPelt.h"
 
 #include "PeltRegistry.h"
+#include "Units.h"
 #include "gfxContext.h"
 #include "mozilla/layers/RenderRootStateManager.h"
 #include "mozilla/layers/StackingContextHelper.h"
@@ -74,7 +75,7 @@ bool nsDisplayPelt::CreateWebRenderCommands(
   nsPresContext* pc = mFrame->PresContext();
   int32_t appUnitsPerDevPixel = pc->AppUnitsPerDevPixel();
 
-  LayoutDeviceRect devRect = LayoutDeviceRect::FromAppUnits(
+  LayoutDeviceRect devRect = LayoutDevicePixel::FromAppUnits(
       bounds, appUnitsPerDevPixel);
 
   uint32_t width = static_cast<uint32_t>(devRect.Width());
@@ -105,7 +106,7 @@ bool nsDisplayPelt::CreateWebRenderCommands(
   //
   // For now, push a solid color rect as a visible placeholder.
   wr::LayoutRect wrBounds = wr::ToLayoutRect(devRect);
-  aBuilder.PushRect(wrBounds, wrBounds, false, false,
+  aBuilder.PushRect(wrBounds, wrBounds, false, false, false,
                     wr::ToColorF(gfx::DeviceColor(0.1f, 0.16f, 0.1f, 0.78f)));
 
   return true;

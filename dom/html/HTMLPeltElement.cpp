@@ -8,7 +8,6 @@
 
 #include "mozilla/PeltRegistry.h"
 #include "mozilla/dom/HTMLPeltElementBinding.h"
-#include "mozilla/dom/SVGSVGElement.h"
 #include "nsContentUtils.h"
 #include "nsGkAtoms.h"
 
@@ -43,7 +42,7 @@ void HTMLPeltElement::RegisterWithPeltRegistry() {
   for (nsIContent* child = GetFirstChild(); child;
        child = child->GetNextSibling()) {
     if (child->IsSVGElement(nsGkAtoms::svg)) {
-      child->GetMarkup(svgSource);
+      child->GetMarkup(true, svgSource);
       break;
     }
   }

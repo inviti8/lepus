@@ -10,19 +10,15 @@
 #define netwerk_hvym_HvymProtocolHandler_h
 
 #include "nsIProtocolHandler.h"
-#include "nsWeakReference.h"
 
 namespace mozilla::net {
 
-class HvymProtocolHandler final : public nsIProtocolHandler,
-                                   public nsSupportsWeakReference {
+class HvymProtocolHandler final : public nsIProtocolHandler {
  public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIPROTOCOLHANDLER
 
   HvymProtocolHandler() = default;
-
-  static void Register();
 
  private:
   ~HvymProtocolHandler() = default;

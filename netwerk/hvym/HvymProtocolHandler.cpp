@@ -6,7 +6,6 @@
 
 #include "HvymProtocolHandler.h"
 
-#include "nsIIOService.h"
 #include "nsIURI.h"
 #include "nsNetUtil.h"
 
@@ -29,8 +28,7 @@ void hvym_string_free(uint8_t* ptr, size_t len);
 
 namespace mozilla::net {
 
-NS_IMPL_ISUPPORTS(HvymProtocolHandler, nsIProtocolHandler,
-                   nsISupportsWeakReference)
+NS_IMPL_ISUPPORTS(HvymProtocolHandler, nsIProtocolHandler)
 
 NS_IMETHODIMP
 HvymProtocolHandler::GetScheme(nsACString& aScheme) {
@@ -39,17 +37,8 @@ HvymProtocolHandler::GetScheme(nsACString& aScheme) {
 }
 
 NS_IMETHODIMP
-HvymProtocolHandler::GetFlagsForURI(nsIURI* aURI, uint32_t* aFlags) {
-  // URI_STD: standard loadable URI
-  // URI_NOAUTH: no authority component (no user:pass@host:port)
-  *aFlags = URI_STD | URI_NORELATIVE | URI_NOAUTH;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 HvymProtocolHandler::NewChannel(nsIURI* aURI, nsILoadInfo* aLoadInfo,
-                                 nsIChannel** aResult) {
-  // Extract the path from hvym://name@service/path
+                                nsIChannel** aResult) {
   nsAutoCString spec;
   nsresult rv = aURI->GetSpec(spec);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -96,16 +85,10 @@ HvymProtocolHandler::NewChannel(nsIURI* aURI, nsILoadInfo* aLoadInfo,
   hvym_string_free(const_cast<uint8_t*>(pathPtr), pathLen);
 
   if (!resolved) {
-    // Resolution failed — show error page
-    // TODO: Create a proper error channel/page
     return NS_ERROR_UNKNOWN_HOST;
   }
 
-  // Build the tunnel URL for the resolved endpoint
-  // The tunnel relay serves content via WSS. For now, construct an
-  // HTTPS URL to the relay with the tunnel routing headers.
-  // Full tunnel integration will replace this with a custom channel
-  // that speaks the tunnel WebSocket protocol.
+  // Build the tunnel URL
   nsAutoCString tunnelUrl("https://");
   tunnelUrl.Append(nsDependentCSubstring(
       reinterpret_cast<const char*>(relayPtr), relayLen));
@@ -117,26 +100,24 @@ HvymProtocolHandler::NewChannel(nsIURI* aURI, nsILoadInfo* aLoadInfo,
   hvym_string_free(const_cast<uint8_t*>(relayPtr), relayLen);
   hvym_string_free(const_cast<uint8_t*>(resolvedPathPtr), resolvedPathLen);
 
-  // Create a standard HTTP channel to the tunnel URL as a temporary
-  // bridge. Phase 2 will replace this with a native tunnel channel.
+  // Create HTTP channel to tunnel relay as temporary bridge
   nsCOMPtr<nsIURI> tunnelURI;
   rv = NS_NewURI(getter_AddRefs(tunnelURI), tunnelUrl);
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIChannel> channel;
-  rv = NS_NewChannelWithLoadInfo(tunnelURI, aLoadInfo,
-                                  getter_AddRefs(channel));
+  rv = NS_NewChannelInternal(getter_AddRefs(channel), tunnelURI, aLoadInfo);
   NS_ENSURE_SUCCESS(rv, rv);
 
   channel.forget(aResult);
   return NS_OK;
 }
 
-void HvymProtocolHandler::Register() {
-  // Called during browser startup to register the hvym:// handler.
-  // This is invoked from nsIOService initialization.
-  // The actual registration happens in nsIOService.cpp with a
-  // // LEPUS: comment marking the insertion point.
+NS_IMETHODIMP
+HvymProtocolHandler::AllowPort(int32_t aPort, const char* aScheme,
+                                bool* aResult) {
+  *aResult = false;
+  return NS_OK;
 }
 
 }  // namespace mozilla::net
