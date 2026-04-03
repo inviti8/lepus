@@ -17,6 +17,7 @@
 //! WebRender can composite.
 
 mod cache;
+mod compositing;
 mod renderer;
 mod token_resolver;
 

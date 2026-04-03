@@ -7,11 +7,18 @@
 # LEPUS: Pelt registry, frame, and display item classes.
 
 EXPORTS.mozilla += [
+    "nsDisplayPelt.h",
     "PeltRegistry.h",
 ]
 
 UNIFIED_SOURCES += [
+    "nsDisplayPelt.cpp",
     "PeltRegistry.cpp",
+]
+
+LOCAL_INCLUDES += [
+    "/gfx/webrender_bindings",
+    "/layout/painting",
 ]
 
 FINAL_LIBRARY = "xul"
