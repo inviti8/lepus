@@ -1,0 +1,39 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/* LEPUS: Subnet selector dropdown styling */
+
+#subnet-selector {
+  -moz-appearance: none;
+  appearance: none;
+  background: var(--toolbar-bgcolor);
+  color: var(--toolbar-color);
+  border: 1px solid var(--toolbar-field-border-color);
+  border-radius: 4px;
+  padding: 2px 8px;
+  margin-inline-end: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  min-width: 56px;
+  cursor: pointer;
+}
+
+#subnet-selector:hover {
+  background: var(--toolbar-field-background-color);
+  border-color: var(--toolbar-field-focus-border-color);
+}
+
+#subnet-selector:focus-visible {
+  outline: 2px solid var(--focus-outline-color);
+  outline-offset: -1px;
+}
+
+#subnet-selector > menupopup > menuitem {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}

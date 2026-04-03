@@ -1033,6 +1033,13 @@ nsresult nsDNSService::AsyncResolveInternal(
     localDomain = IsLocalDomain(aHostname);
   }
 
+  // LEPUS: Safety net — catch @-addresses that leaked to DNS resolution.
+  // These should have been intercepted at the nsIOService level, but if
+  // they reach here, prevent them from leaking to public DNS.
+  if (aHostname.Contains('@') && !aHostname.Contains(':')) {
+    return NS_ERROR_UNKNOWN_HOST;
+  }
+
   if (mNotifyResolution) {
     NS_DispatchToMainThread(new NotifyDNSResolution(aHostname));
   }

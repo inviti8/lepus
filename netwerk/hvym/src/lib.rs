@@ -7,16 +7,12 @@
 //! This crate provides:
 //!
 //! - `address`: @ address parser (name@service/path grammar)
-//! - `resolver`: Soroban RPC client with 3-tier cache (L1 in-memory,
-//!   L2 relay HTTP, L3 on-chain)
-//! - `tunnel`: WebSocket tunnel connection manager with Stellar JWT auth
+//! - `resolver`: Soroban RPC client with 3-tier cache
+//! - `tunnel`: WebSocket tunnel connection manager
 //!
-//! The C++ XPCOM wrappers (HvymResolver, HvymProtocolHandler,
-//! HvymTunnelService) call into this crate via FFI.
-//!
-//! Phase 1 will populate these modules.
+//! The C++ XPCOM wrappers (HvymProtocolHandler, HvymResolver) call
+//! into this crate via FFI.
 
-// Phase 1 modules (stubs):
-// mod address;
-// mod resolver;
-// mod tunnel;
+pub mod address;
+pub mod resolver;
+pub mod tunnel;

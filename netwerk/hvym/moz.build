@@ -6,7 +6,19 @@
 
 # LEPUS: HVYM subnet resolver, tunnel manager, and protocol handler.
 
-# Uncomment once FFI surface is implemented in Phase 1:
+EXPORTS.mozilla.net += [
+    "HvymProtocolHandler.h",
+]
+
+UNIFIED_SOURCES += [
+    "HvymProtocolHandler.cpp",
+]
+
+LOCAL_INCLUDES += [
+    "/netwerk/base",
+]
+
+# Uncomment once cbindgen FFI is active:
 # if CONFIG["COMPILE_ENVIRONMENT"]:
 #     CbindgenHeader(
 #         "hvym_ffi_generated.h",

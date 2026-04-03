@@ -238,6 +238,7 @@ export var UrlbarUtils = {
     "about:",
     "data:",
     "file:",
+    "hvym:", // LEPUS
     "javascript:",
     "view-source:",
   ],

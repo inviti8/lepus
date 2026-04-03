@@ -5,4 +5,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 # LEPUS: Subnet selector UI and HVYM browser chrome components.
-# Populated in Phase 1 with SubnetSelector.mjs and related UI.
+
+EXTRA_JS_MODULES += [
+    "SubnetSelector.sys.mjs",
+]
