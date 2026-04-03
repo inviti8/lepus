@@ -184,7 +184,7 @@ Member's Pintheon node serves content
 
 **Namespace:** `mozilla::net`
 
-**Class:** `HvymProtocolHandler` (final, inherits `nsIProtocolHandler`, `nsSupportsWeakReference`)
+**Class:** `HvymProtocolHandler` (final, inherits `nsIProtocolHandler`)
 
 Handles `hvym://` URIs. Registered in `nsIOService::mRuntimeProtocolHandlers`.
 
@@ -193,14 +193,8 @@ Handles `hvym://` URIs. Registered in `nsIOService::mRuntimeProtocolHandlers`.
 | Method | Signature | Description |
 |--------|-----------|-------------|
 | `GetScheme()` | `(nsACString& aScheme) -> nsresult` | Returns `"hvym"`. |
-| `GetFlagsForURI()` | `(nsIURI*, uint32_t* aFlags) -> nsresult` | Returns `URI_STD | URI_NORELATIVE | URI_NOAUTH`. |
-| `NewChannel()` | `(nsIURI*, nsILoadInfo*, nsIChannel**) -> nsresult` | Strips `hvym://` prefix, calls `hvym_address_parse()` FFI, then `hvym_resolver_resolve()` FFI. Frees FFI strings. Constructs HTTPS URL to tunnel relay with resolved path. Creates standard HTTP channel as temporary bridge (full tunnel channel in Phase 2). Returns `NS_ERROR_MALFORMED_URI` on parse failure, `NS_ERROR_UNKNOWN_HOST` on resolution failure. |
-
-### Static Methods
-
-| Method | Signature | Description |
-|--------|-----------|-------------|
-| `Register()` | `static void Register()` | Called during browser startup. Integration point in nsIOService.cpp. |
+| `NewChannel()` | `(nsIURI*, nsILoadInfo*, nsIChannel**) -> nsresult` | Strips `hvym://` prefix, calls `hvym_address_parse()` FFI, then `hvym_resolver_resolve()` FFI. Frees FFI strings via `hvym_string_free()`. Constructs HTTPS URL to tunnel relay with resolved path. Creates HTTP channel via `NS_NewChannelInternal()` as temporary bridge (full tunnel channel in Phase 2). Returns `NS_ERROR_MALFORMED_URI` on parse failure, `NS_ERROR_UNKNOWN_HOST` on resolution failure. |
+| `AllowPort()` | `(int32_t aPort, const char* aScheme, bool* aResult) -> nsresult` | Returns false (no special port allowances). |
 
 ### FFI Declarations (extern "C")
 

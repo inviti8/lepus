@@ -60,15 +60,15 @@ The `<pelt>` DOM element. Invisible by default (`display: none` in UA stylesheet
 | Method | Signature | Description |
 |--------|-----------|-------------|
 | `GetSrc()` | `void GetSrc(nsAString& aResult) const` | Returns the `src` attribute value (external SVG URL). |
-| `SetSrc()` | `void SetSrc(const nsAString& aValue, ErrorResult& aError)` | Sets the `src` attribute. Triggers `AfterSetAttr` -> `FetchExternalSvg`. |
+| `SetSrc()` | `void SetSrc(const nsAString& aValue)` | Sets the `src` attribute. No ErrorResult — WebIDL setter without `[SetterThrows]`. Triggers `AfterSetAttr` -> `FetchExternalSvg`. |
 | `GetScale()` | `void GetScale(nsAString& aResult) const` | Returns the `scale` attribute ("stretch", "9-slice", "contain", "cover"). |
-| `SetScale()` | `void SetScale(const nsAString& aValue, ErrorResult& aError)` | Sets the `scale` attribute. |
+| `SetScale()` | `void SetScale(const nsAString& aValue)` | Sets the `scale` attribute. No ErrorResult — WebIDL setter without `[SetterThrows]`. |
 
 ### Private Methods
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
-| `RegisterWithPeltRegistry()` | `void RegisterWithPeltRegistry()` | Extracts inline SVG child markup, parses scale mode and slice values from attributes, creates a `PeltDefinition`, and stores it in `PeltRegistry` keyed by the element's `id`. |
+| `RegisterWithPeltRegistry()` | `void RegisterWithPeltRegistry()` | Extracts inline SVG child markup via `child->AsElement()->GetOuterHTML()`, parses scale mode and slice values from attributes, creates a `PeltDefinition`, and stores it in `PeltRegistry` keyed by the element's `id`. |
 | `UnregisterFromPeltRegistry()` | `void UnregisterFromPeltRegistry()` | Removes this element's `PeltDefinition` from `PeltRegistry`. |
 | `FetchExternalSvg()` | `void FetchExternalSvg(const nsAString& aUrl)` | Placeholder for async Necko fetch of external SVG file when `src` attribute is set. Will create a channel, fetch, parse, and call `RegisterWithPeltRegistry()` with the result. |
 
@@ -190,7 +190,7 @@ Custom display item that renders a pelt texture in place of CSS background/borde
 | Method | Signature | Description |
 |--------|-----------|-------------|
 | `Paint()` | `void Paint(nsDisplayListBuilder* aBuilder, gfxContext* aCtx)` | Software fallback. Draws a placeholder solid color rectangle. Used when WebRender is disabled. |
-| `CreateWebRenderCommands()` | `bool CreateWebRenderCommands(wr::DisplayListBuilder&, wr::IpcResourceUpdateQueue&, const StackingContextHelper&, layers::RenderRootStateManager*, nsDisplayListBuilder*)` | Primary render path. Computes device-pixel rect, gets SVG from definition, detects interactive state, calls `vello_pelt_render()` FFI, pushes WebRender display item. Currently pushes placeholder solid rect. |
+| `CreateWebRenderCommands()` | `bool CreateWebRenderCommands(wr::DisplayListBuilder&, wr::IpcResourceUpdateQueue&, const StackingContextHelper&, layers::RenderRootStateManager*, nsDisplayListBuilder*)` | Primary render path. Converts bounds via `LayoutDevicePixel::FromAppUnits()`, gets SVG from definition, detects interactive state via `GetCurrentState()`, calls `vello_pelt_render()` FFI, pushes WebRender display item via `PushRect()` (6 args: bounds, clip, backfaceVisible, forceAA, checkerboard, color). Currently pushes placeholder solid rect. |
 | `GetBounds()` | `nsRect GetBounds(nsDisplayListBuilder*, bool* aSnap) const` | Returns the frame's ink overflow rect plus reference frame offset. |
 
 ### Private Methods
