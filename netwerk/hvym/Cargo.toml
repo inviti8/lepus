@@ -13,4 +13,3 @@ description = "HVYM subnet name resolver, tunnel manager, and @ address parser f
 
 [lib]
 name = "hvym_resolver"
-crate-type = ["staticlib"]

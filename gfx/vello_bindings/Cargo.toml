@@ -18,4 +18,3 @@ description = "FFI bindings for Vello GPU 2D renderer integration with Gecko"
 
 [lib]
 name = "vello_bindings"
-crate-type = ["staticlib"]
