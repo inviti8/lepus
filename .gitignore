@@ -415,3 +415,7 @@ CLAUDE.local.md
 
 # LEPUS
 .env
+
+# LEPUS: Rust build artifacts
+contracts/hvym-name-registry/target/
+tools/pelt-kit/target/
