@@ -1027,6 +1027,15 @@ STATIC_ATOMS = [
     Atom("perMille", "per-mille"),
     Atom("percent", "percent"),
     Atom("pelt", "pelt"),  # LEPUS
+    Atom("peltHover", "pelt-hover"),  # LEPUS
+    Atom("peltActive", "pelt-active"),  # LEPUS
+    Atom("peltFocus", "pelt-focus"),  # LEPUS
+    Atom("peltDisabled", "pelt-disabled"),  # LEPUS
+    Atom("peltChecked", "pelt-checked"),  # LEPUS
+    Atom("sliceTop", "slice-top"),  # LEPUS
+    Atom("sliceRight", "slice-right"),  # LEPUS
+    Atom("sliceBottom", "slice-bottom"),  # LEPUS
+    Atom("sliceLeft", "slice-left"),  # LEPUS
     Atom("persist", "persist"),
     Atom("phase", "phase"),
     Atom("picture", "picture"),

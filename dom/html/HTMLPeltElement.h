@@ -20,6 +20,10 @@ class HTMLPeltElement final : public nsGenericHTMLElement {
 
   NS_IMPL_FROMNODE_HTML_WITH_TAG(HTMLPeltElement, pelt)
 
+  // nsIContent overrides
+  nsresult BindToTree(BindContext&, nsINode& aParent) override;
+  void UnbindFromTree(UnbindContext&) override;
+
   // Attribute getters for WebIDL bindings
   void GetSrc(nsAString& aResult) const {
     GetHTMLAttr(nsGkAtoms::src, aResult);
@@ -36,6 +40,10 @@ class HTMLPeltElement final : public nsGenericHTMLElement {
   }
 
   virtual nsresult Clone(dom::NodeInfo*, nsINode** aResult) const override;
+
+ private:
+  void RegisterWithPeltRegistry();
+  void UnregisterFromPeltRegistry();
 
  protected:
   virtual ~HTMLPeltElement();
