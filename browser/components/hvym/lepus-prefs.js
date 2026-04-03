@@ -7,7 +7,7 @@
 pref("lepus.subnet.active", "dns");
 pref("lepus.hvym.relay", "tunnel.hvym.link");
 pref("lepus.hvym.soroban.rpc", "https://soroban-testnet.stellar.org");
-pref("lepus.hvym.contract.id", "CCI2WAVXAFBMGHZRZWF5JSUB7PQ5MZSWPUZDGGEPP3B5ZM5PMOYTR4NS");
+pref("lepus.hvym.contract.id", "CA2ACNHDRGFSFZYSPPZYE5MVZQBVMNH4HLCSQ43BPOWB4UIT2WK334DN");
 pref("lepus.hvym.cache.max_entries", 10000);
 pref("lepus.hvym.cache.grace_period_hours", 24);
 pref("lepus.pelt.enabled", true);

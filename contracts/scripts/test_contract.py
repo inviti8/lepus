@@ -62,24 +62,22 @@ def main():
     print(f"Network:  {network}")
     print(f"Identity: {public_key}")
 
-    # Test 1: Register a name
-    print("\n--- Test 1: Register 'testuser' ---")
-    # Generate a random tunnel_id for testing
-    tunnel_id = public_key  # Use deployer as tunnel_id for simplicity
+    # Test 1: Claim a name
+    print("\n--- Test 1: Claim 'testuser' ---")
+    tunnel_id = public_key
     result = run(
         f"stellar contract invoke "
         f"--id {contract_id} "
         f"--source {identity} "
         f"--network {network} "
-        f"-- register "
+        f"-- claim "
         f"--caller {public_key} "
         f"--name testuser "
         f"--tunnel_id {tunnel_id} "
         f'--tunnel_relay "tunnel.hvym.link" '
-        f"--public_key 0101010101010101010101010101010101010101010101010101010101010101 "
-        f"--duration_years 1"
+        f"--public_key 0101010101010101010101010101010101010101010101010101010101010101"
     )
-    print(f"  Register result: {'OK' if result else 'FAILED'}")
+    print(f"  Claim result: {'OK' if result else 'FAILED'}")
 
     # Test 2: Resolve the name
     print("\n--- Test 2: Resolve 'testuser' ---")

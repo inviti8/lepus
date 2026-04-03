@@ -1,7 +1,7 @@
 #![no_std]
 
 use soroban_sdk::{
-    contract, contractimpl, contracttype, Address, BytesN, Env, Map, String, Symbol, Vec,
+    contract, contractimpl, contracttype, Address, BytesN, Env, Map, String, Symbol,
 };
 
 #[contracttype]
@@ -14,8 +14,7 @@ pub struct NameRecord {
     pub public_key: BytesN<32>,
     pub services: Map<String, String>,
     pub ttl: u32,
-    pub registered_at: u64,
-    pub expires_at: u64,
+    pub claimed_at: u64,
     pub version: u32,
 }
 
@@ -23,7 +22,6 @@ pub struct NameRecord {
 #[derive(Clone, Debug, PartialEq)]
 pub enum NameStatus {
     Active,
-    Expired,
     Suspended,
 }
 
@@ -43,31 +41,28 @@ impl HvymNameRegistry {
         env.storage().instance().set(&DataKey::Admin, &admin);
     }
 
-    pub fn register(
+    /// Claim a name in the HVYM namespace. Names are permanent — there is
+    /// no expiration. Reclamation is handled by cooperative governance
+    /// via the revoke method.
+    pub fn claim(
         env: Env,
         caller: Address,
         name: String,
         tunnel_id: Address,
         tunnel_relay: String,
         public_key: BytesN<32>,
-        duration_years: u32,
     ) -> NameRecord {
         caller.require_auth();
 
-        // Check name not already taken
         let key = DataKey::Record(name.clone());
         if env.storage().persistent().has(&key) {
-            let existing: NameRecord = env.storage().persistent().get(&key).unwrap();
             let status_key = DataKey::Status(name.clone());
             let status: NameStatus = env.storage().persistent().get(&status_key)
                 .unwrap_or(NameStatus::Active);
-            if status == NameStatus::Active && existing.expires_at > env.ledger().timestamp() {
-                panic!("name already registered");
+            if status == NameStatus::Active {
+                panic!("name already claimed");
             }
         }
-
-        let now = env.ledger().timestamp();
-        let expires = now + (duration_years as u64 * 365 * 24 * 3600);
 
         let record = NameRecord {
             name: name.clone(),
@@ -77,8 +72,7 @@ impl HvymNameRegistry {
             public_key,
             services: Map::new(&env),
             ttl: 3600,
-            registered_at: now,
-            expires_at: expires,
+            claimed_at: env.ledger().timestamp(),
             version: 1,
         };
 
@@ -89,13 +83,14 @@ impl HvymNameRegistry {
         );
 
         env.events().publish(
-            (Symbol::new(&env, "name_registered"),),
+            (Symbol::new(&env, "name_claimed"),),
             (name, caller),
         );
 
         record
     }
 
+    /// Look up a name. Read-only — no gas cost via simulation.
     pub fn resolve(env: Env, name: String) -> Option<NameRecord> {
         let key = DataKey::Record(name.clone());
         let record: NameRecord = env.storage().persistent().get(&key)?;
@@ -107,13 +102,11 @@ impl HvymNameRegistry {
         if status != NameStatus::Active {
             return None;
         }
-        if record.expires_at < env.ledger().timestamp() {
-            return None;
-        }
 
         Some(record)
     }
 
+    /// Update the service routing map (alice@gallery -> /gallery, etc.).
     pub fn update_services(
         env: Env,
         caller: Address,
@@ -141,6 +134,7 @@ impl HvymNameRegistry {
         );
     }
 
+    /// Change the tunnel endpoint for a name.
     pub fn update_tunnel(
         env: Env,
         caller: Address,
@@ -172,28 +166,7 @@ impl HvymNameRegistry {
         );
     }
 
-    pub fn renew(
-        env: Env,
-        caller: Address,
-        name: String,
-        additional_years: u32,
-    ) {
-        caller.require_auth();
-
-        let key = DataKey::Record(name.clone());
-        let mut record: NameRecord = env.storage().persistent().get(&key)
-            .expect("name not found");
-
-        if record.owner != caller {
-            panic!("not the owner");
-        }
-
-        record.expires_at += additional_years as u64 * 365 * 24 * 3600;
-        record.version += 1;
-
-        env.storage().persistent().set(&key, &record);
-    }
-
+    /// Transfer ownership to another address.
     pub fn transfer(
         env: Env,
         caller: Address,
@@ -221,6 +194,8 @@ impl HvymNameRegistry {
         );
     }
 
+    /// Suspend a name. Admin-only — used for cooperative governance.
+    /// A suspended name can be re-claimed by calling claim() again.
     pub fn revoke(
         env: Env,
         caller: Address,

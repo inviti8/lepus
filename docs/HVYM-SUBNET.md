@@ -115,7 +115,9 @@ Preferences (set in about:config or HVYM settings panel):
 
 Deployed separately (not in this repo). See LEPUS.md Section 6.4 for the contract interface. Key operations:
 
-- `register(name, tunnel_id, relay, public_key, duration)` — Membership-gated
+- `claim(caller, name, tunnel_id, relay, public_key)` — Claim a permanent name (membership-gated in production)
 - `resolve(name)` — Free read, returns NameRecord
-- `update_services(name, services_map)` — Update @service routing
-- `update_tunnel(name, new_tunnel_id, new_relay, new_key)` — Change endpoint
+- `update_services(caller, name, services_map)` — Update @service routing
+- `update_tunnel(caller, name, new_tunnel_id, new_relay, new_key)` — Change endpoint
+- `transfer(caller, name, new_owner)` — Transfer ownership
+- `revoke(caller, name)` — Admin-only suspension

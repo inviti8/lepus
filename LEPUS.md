@@ -462,7 +462,7 @@ L2: Relay Redis Cache            Event-driven from Soroban, 20-50ms
 L3: Soroban On-Chain Storage     Source of truth, 100-300ms, free reads
 ```
 
-The relay subscribes to Soroban contract events (`name_registered`, `tunnel_updated`). Cache is near-real-time with chain state (within one Stellar ledger close, ~5 seconds).
+The relay subscribes to Soroban contract events (`name_claimed`, `tunnel_updated`). Cache is near-real-time with chain state (within one Stellar ledger close, ~5 seconds).
 
 ### 6.6 Security: Ledger-Anchored Certificates
 

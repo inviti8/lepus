@@ -1013,24 +1013,21 @@ pub struct HvymNameRegistry;
 
 #[contractimpl]
 impl HvymNameRegistry {
-    pub fn register(env: Env, name: String, tunnel_id: Address,
-                    tunnel_relay: String, public_key: BytesN<32>,
-                    duration_years: u32) -> Result<NameRecord, RegistryError>;
+    pub fn claim(env: Env, caller: Address, name: String, tunnel_id: Address,
+                 tunnel_relay: String, public_key: BytesN<32>) -> NameRecord;
 
     pub fn resolve(env: Env, name: String) -> Option<NameRecord>;
 
-    pub fn update_tunnel(env: Env, name: String, new_tunnel_id: Address,
-                         new_tunnel_relay: String,
-                         new_public_key: BytesN<32>) -> Result<(), RegistryError>;
+    pub fn update_tunnel(env: Env, caller: Address, name: String,
+                         new_tunnel_id: Address, new_tunnel_relay: String,
+                         new_public_key: BytesN<32>);
 
-    pub fn update_services(env: Env, name: String,
-                           services: Map<Symbol, String>) -> Result<(), RegistryError>;
+    pub fn update_services(env: Env, caller: Address, name: String,
+                           services: Map<String, String>);
 
-    pub fn renew(env: Env, name: String, additional_years: u32) -> Result<(), RegistryError>;
+    pub fn transfer(env: Env, caller: Address, name: String, new_owner: Address);
 
-    pub fn transfer(env: Env, name: String, new_owner: Address) -> Result<(), RegistryError>;
-
-    pub fn revoke(env: Env, name: String, reason: String) -> Result<(), RegistryError>;
+    pub fn revoke(env: Env, caller: Address, name: String);
 }
 ```
 
