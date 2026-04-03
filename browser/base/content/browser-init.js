@@ -225,6 +225,23 @@ var gBrowserInit = {
 
     gURLBar.initPlaceHolder();
 
+    // LEPUS: Initialize subnet selector
+    try {
+      let { SubnetSelector } = ChromeUtils.importESModule(
+        "resource:///modules/SubnetSelector.sys.mjs"
+      );
+      SubnetSelector.init();
+      let selector = document.getElementById("subnet-selector");
+      if (selector) {
+        selector.value = SubnetSelector.currentSubnet;
+        selector.addEventListener("command", event => {
+          SubnetSelector.onSelect(event);
+        });
+      }
+    } catch (e) {
+      console.error("LEPUS: Failed to initialize SubnetSelector:", e);
+    }
+
     // Hack to ensure that the various initial pages favicon is loaded
     // instantaneously, to avoid flickering and improve perceived performance.
     this._callWithURIToLoad(uriToLoad => {

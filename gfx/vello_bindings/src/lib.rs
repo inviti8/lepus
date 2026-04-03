@@ -18,6 +18,7 @@
 
 mod cache;
 mod compositing;
+mod nine_slice;
 mod renderer;
 mod token_resolver;
 

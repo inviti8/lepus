@@ -4,5 +4,14 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-# LEPUS: <pelt> DOM element definition.
-# Populated in Phase 1 with HTMLPeltElement and WebIDL.
+# LEPUS: Pelt DOM components — link handler for <link rel="pelt">.
+
+EXPORTS.mozilla.dom += [
+    "PeltLinkHandler.h",
+]
+
+UNIFIED_SOURCES += [
+    "PeltLinkHandler.cpp",
+]
+
+FINAL_LIBRARY = "xul"

@@ -98,6 +98,43 @@ void HTMLPeltElement::UnregisterFromPeltRegistry() {
   }
 }
 
+void HTMLPeltElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
+                                    const nsAttrValue* aValue,
+                                    const nsAttrValue* aOldValue,
+                                    nsIPrincipal* aMaybeScriptedPrincipal,
+                                    bool aNotify) {
+  nsGenericHTMLElement::AfterSetAttr(aNameSpaceID, aName, aValue, aOldValue,
+                                      aMaybeScriptedPrincipal, aNotify);
+
+  if (aNameSpaceID == kNameSpaceID_None && aName == nsGkAtoms::src && aValue) {
+    // src attribute changed — fetch external SVG
+    nsAutoString src;
+    GetAttr(nsGkAtoms::src, src);
+    if (!src.IsEmpty()) {
+      FetchExternalSvg(src);
+    }
+  }
+}
+
+void HTMLPeltElement::FetchExternalSvg(const nsAString& aUrl) {
+  // Fetch the SVG file and register its content with PeltRegistry.
+  // When the fetch completes, the SVG is parsed and registered just
+  // like inline SVG content.
+  //
+  // For now, this is a placeholder. Full implementation will use
+  // nsIChannel/Necko to fetch the URL, parse the response as SVG,
+  // and call RegisterWithPeltRegistry() with the fetched content.
+  //
+  // The fetch should respect CSP and CORS policies.
+
+  // TODO: Implement async fetch via Necko
+  // nsCOMPtr<nsIURI> uri;
+  // nsresult rv = NS_NewURI(getter_AddRefs(uri), aUrl, nullptr,
+  //                          GetBaseURI());
+  // if (NS_FAILED(rv)) return;
+  // ... create channel, fetch, parse, register
+}
+
 JSObject* HTMLPeltElement::WrapNode(JSContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return HTMLPeltElement_Binding::Wrap(aCx, this, aGivenProto);

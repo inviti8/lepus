@@ -88,14 +88,14 @@ bool nsDisplayPelt::CreateWebRenderCommands(
       reinterpret_cast<const uint8_t*>(svgUtf8.get());
   size_t svgLen = svgUtf8.Length();
 
-  // State: default (Phase 2 adds hover/active detection)
-  const char* state = "default";
+  // Detect interactive state (hover/active/focus/disabled)
+  nsAutoCString state = GetCurrentState();
 
   // Call Vello FFI to render the pelt
   PeltTextureHandle handle = {};
   bool ok = vello_pelt_render(svgData, svgLen, width, height, 1.0f,
-                              reinterpret_cast<const uint8_t*>(state),
-                              strlen(state), nullptr, 0, &handle);
+                              reinterpret_cast<const uint8_t*>(state.get()),
+                              state.Length(), nullptr, 0, &handle);
 
   if (!ok) return false;
 
@@ -109,6 +109,57 @@ bool nsDisplayPelt::CreateWebRenderCommands(
                     wr::ToColorF(gfx::DeviceColor(0.1f, 0.16f, 0.1f, 0.78f)));
 
   return true;
+}
+
+nsAutoCString nsDisplayPelt::GetCurrentState() const {
+  nsIContent* content = mFrame->GetContent();
+  if (!content || !content->IsElement()) {
+    return nsAutoCString("default");
+  }
+
+  dom::Element* el = content->AsElement();
+
+  // Check disabled first (takes priority)
+  if (el->HasAttr(nsGkAtoms::disabled)) {
+    nsAutoString peltDisabled;
+    if (el->GetAttr(nsGkAtoms::peltDisabled, peltDisabled) &&
+        !peltDisabled.IsEmpty()) {
+      return NS_ConvertUTF16toUTF8(peltDisabled);
+    }
+    return nsAutoCString("disabled");
+  }
+
+  // Check active (:active pseudo-state)
+  if (el->State().HasState(dom::ElementState::ACTIVE)) {
+    nsAutoString peltActive;
+    if (el->GetAttr(nsGkAtoms::peltActive, peltActive) &&
+        !peltActive.IsEmpty()) {
+      return NS_ConvertUTF16toUTF8(peltActive);
+    }
+    return nsAutoCString("active");
+  }
+
+  // Check hover
+  if (el->State().HasState(dom::ElementState::HOVER)) {
+    nsAutoString peltHover;
+    if (el->GetAttr(nsGkAtoms::peltHover, peltHover) &&
+        !peltHover.IsEmpty()) {
+      return NS_ConvertUTF16toUTF8(peltHover);
+    }
+    return nsAutoCString("hover");
+  }
+
+  // Check focus
+  if (el->State().HasState(dom::ElementState::FOCUS)) {
+    nsAutoString peltFocus;
+    if (el->GetAttr(nsGkAtoms::peltFocus, peltFocus) &&
+        !peltFocus.IsEmpty()) {
+      return NS_ConvertUTF16toUTF8(peltFocus);
+    }
+    return nsAutoCString("focus");
+  }
+
+  return nsAutoCString("default");
 }
 
 nsRect nsDisplayPelt::GetBounds(nsDisplayListBuilder* aBuilder,

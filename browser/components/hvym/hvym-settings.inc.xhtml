@@ -1,0 +1,49 @@
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+
+<!-- LEPUS: HVYM subnet settings panel.
+     Included in about:preferences when Lepus features are enabled. -->
+
+<groupbox id="hvymGroup" data-category="paneGeneral">
+  <label><html:h2>HVYM Subnet</html:h2></label>
+  <description>Configure the Stellar ledger-based namespace for the HVYM subnet.</description>
+
+  <hbox align="center">
+    <label flex="1">Default subnet:</label>
+    <menulist id="hvymDefaultSubnet" preference="lepus.subnet.active">
+      <menupopup>
+        <menuitem label="dns (Traditional DNS)" value="dns"/>
+        <menuitem label="hvym (Stellar Ledger)" value="hvym"/>
+      </menupopup>
+    </menulist>
+  </hbox>
+
+  <hbox align="center">
+    <label flex="1">Relay server:</label>
+    <html:input id="hvymRelayServer" type="text"
+                preference="lepus.hvym.relay"
+                style="width: 300px;"/>
+  </hbox>
+
+  <hbox align="center">
+    <label flex="1">Soroban RPC endpoint:</label>
+    <html:input id="hvymSorobanRpc" type="text"
+                preference="lepus.hvym.soroban.rpc"
+                style="width: 300px;"/>
+  </hbox>
+
+  <hbox align="center">
+    <label flex="1">Name registry contract:</label>
+    <html:input id="hvymContractId" type="text"
+                preference="lepus.hvym.contract.id"
+                style="width: 300px;"/>
+  </hbox>
+
+  <separator class="thin"/>
+
+  <hbox>
+    <button id="hvymClearCache" label="Clear Name Cache"
+            oncommand="Services.prefs.clearUserPref('lepus.hvym.cache.cleared');"/>
+  </hbox>
+</groupbox>

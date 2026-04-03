@@ -39,11 +39,18 @@ class HTMLPeltElement final : public nsGenericHTMLElement {
     SetHTMLAttr(nsGkAtoms::scale, aValue, aError);
   }
 
+  // nsIContent overrides
+  void AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
+                    const nsAttrValue* aValue, const nsAttrValue* aOldValue,
+                    nsIPrincipal* aMaybeScriptedPrincipal,
+                    bool aNotify) override;
+
   virtual nsresult Clone(dom::NodeInfo*, nsINode** aResult) const override;
 
  private:
   void RegisterWithPeltRegistry();
   void UnregisterFromPeltRegistry();
+  void FetchExternalSvg(const nsAString& aUrl);
 
  protected:
   virtual ~HTMLPeltElement();

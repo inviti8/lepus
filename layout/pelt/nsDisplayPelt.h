@@ -34,6 +34,8 @@ class nsDisplayPelt final : public nsPaintedDisplayItem {
   nsRect GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap) const override;
 
  private:
+  nsAutoCString GetCurrentState() const;
+
   RefPtr<nsAtom> mPeltId;
   RefPtr<PeltDefinition> mDef;
 };
