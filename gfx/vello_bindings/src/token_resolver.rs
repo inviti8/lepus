@@ -119,7 +119,7 @@ mod tests {
     #[test]
     fn test_no_var_references() {
         let tokens = HashMap::new();
-        let input = r#"fill="#ff0000""#;
+        let input = r##"fill="#ff0000""##;
         let output = resolve_tokens(input, &tokens);
         assert_eq!(output, input);
     }

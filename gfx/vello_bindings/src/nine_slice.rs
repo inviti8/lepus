@@ -38,7 +38,7 @@ pub struct SliceInsets {
 
 /// A single slice region with source and destination rects,
 /// plus the X and Y scale factors.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct SliceRegion {
     pub src: Rect,
     pub dst: Rect,

@@ -28,7 +28,6 @@ mod transitions;
 use std::collections::HashMap;
 use std::sync::Mutex;
 
-use cache::{PeltCache, TextureCacheKey};
 use renderer::PeltRenderer;
 use token_resolver::resolve_tokens;
 
