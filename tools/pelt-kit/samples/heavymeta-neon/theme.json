@@ -1,0 +1,21 @@
+{
+  "name": "Heavymeta Neon",
+  "version": "1.0.0",
+  "author": "heavymeta-collective",
+  "license": "CC-BY-4.0",
+  "description": "Cyberpunk neon theme with animated glows and dark surfaces",
+
+  "tokens": {
+    "accent": "#e94560",
+    "accent-glow": "rgba(233, 69, 96, 0.4)",
+    "surface": "#1a1a2e",
+    "surface-end": "#0f0f1e",
+    "border": "rgba(233, 69, 96, 0.3)",
+    "radius": "8"
+  },
+
+  "pelts": {
+    "card": "glass-card.svg",
+    "button": "neon-button.svg"
+  }
+}

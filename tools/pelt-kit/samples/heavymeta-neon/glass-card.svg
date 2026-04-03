@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:pelt="https://heavymeta.art/pelt/1.0"
+     viewBox="0 0 400 300"
+     pelt:version="1.0"
+     pelt:scale="9-slice"
+     pelt:content-inset="24 24 24 24">
+
+  <pelt:slices top="24" right="24" bottom="24" left="24" center-fill="stretch"/>
+
+  <pelt:tokens>
+    <pelt:token name="surface" type="color" default="rgba(255,255,255,0.08)"/>
+    <pelt:token name="surface-end" type="color" default="rgba(255,255,255,0.02)"/>
+    <pelt:token name="border" type="color" default="rgba(255,255,255,0.15)"/>
+    <pelt:token name="radius" type="number" default="16"/>
+  </pelt:tokens>
+
+  <defs>
+    <linearGradient id="glass-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="var(--pelt-surface, rgba(255,255,255,0.08))"/>
+      <stop offset="100%" stop-color="var(--pelt-surface-end, rgba(255,255,255,0.02))"/>
+    </linearGradient>
+  </defs>
+
+  <g data-pelt-state="default">
+    <g class="pelt-bg">
+      <rect width="400" height="300" rx="var(--pelt-radius, 16)"
+            fill="url(#glass-grad)" opacity="0.9"/>
+    </g>
+    <g class="pelt-border">
+      <rect width="400" height="300" rx="var(--pelt-radius, 16)"
+            fill="none"
+            stroke="var(--pelt-border, rgba(255,255,255,0.15))"
+            stroke-width="1"/>
+    </g>
+  </g>
+
+  <g data-pelt-state="hover">
+    <g class="pelt-bg">
+      <rect width="400" height="300" rx="var(--pelt-radius, 16)"
+            fill="url(#glass-grad)" opacity="0.95"/>
+    </g>
+    <g class="pelt-border">
+      <rect width="400" height="300" rx="var(--pelt-radius, 16)"
+            fill="none"
+            stroke="rgba(255,255,255,0.25)"
+            stroke-width="1.5"/>
+    </g>
+  </g>
+</svg>

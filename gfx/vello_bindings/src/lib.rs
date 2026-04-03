@@ -16,11 +16,14 @@
 //! a Vello scene, renders to a GPU texture, and returns a handle that
 //! WebRender can composite.
 
+mod animation;
 mod cache;
 mod compositing;
 mod nine_slice;
+mod profiler;
 mod renderer;
 mod token_resolver;
+mod transitions;
 
 use std::collections::HashMap;
 use std::sync::Mutex;

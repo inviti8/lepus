@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:pelt="https://heavymeta.art/pelt/1.0"
+     viewBox="0 0 240 60"
+     pelt:version="1.0"
+     pelt:scale="9-slice"
+     pelt:content-inset="16 20 16 20">
+
+  <pelt:slices top="16" right="16" bottom="16" left="16" center-fill="stretch"/>
+
+  <pelt:tokens>
+    <pelt:token name="accent" type="color" default="#e94560"/>
+    <pelt:token name="accent-glow" type="color" default="rgba(233,69,96,0.4)"/>
+    <pelt:token name="surface" type="color" default="#1a1a2e"/>
+    <pelt:token name="radius" type="number" default="8"/>
+  </pelt:tokens>
+
+  <pelt:transitions>
+    <pelt:transition from="default" to="hover" duration="200ms" easing="ease-out"/>
+    <pelt:transition from="hover" to="default" duration="150ms" easing="ease-in"/>
+    <pelt:transition from="default" to="active" duration="50ms" easing="linear"/>
+  </pelt:transitions>
+
+  <defs>
+    <filter id="neon-glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="6"/>
+    </filter>
+  </defs>
+
+  <g data-pelt-state="default">
+    <g class="pelt-bg">
+      <rect width="240" height="60" rx="var(--pelt-radius, 8)"
+            fill="var(--pelt-surface, #1a1a2e)"/>
+    </g>
+    <g class="pelt-border">
+      <rect width="240" height="60" rx="var(--pelt-radius, 8)"
+            fill="none" stroke="var(--pelt-accent, #e94560)" stroke-width="2"/>
+    </g>
+    <g class="pelt-shadow">
+      <rect width="240" height="60" rx="var(--pelt-radius, 8)"
+            fill="none" stroke="var(--pelt-accent, #e94560)"
+            stroke-width="1.5" opacity="0.5" filter="url(#neon-glow)"/>
+    </g>
+  </g>
+
+  <g data-pelt-state="hover">
+    <g class="pelt-bg">
+      <rect width="240" height="60" rx="var(--pelt-radius, 8)" fill="#16213e"/>
+    </g>
+    <g class="pelt-border">
+      <rect width="240" height="60" rx="var(--pelt-radius, 8)"
+            fill="none" stroke="var(--pelt-accent, #e94560)" stroke-width="2.5"/>
+    </g>
+    <g class="pelt-shadow">
+      <rect width="240" height="60" rx="var(--pelt-radius, 8)"
+            fill="none" stroke="var(--pelt-accent, #e94560)"
+            stroke-width="2" opacity="0.7" filter="url(#neon-glow)"/>
+    </g>
+  </g>
+
+  <g data-pelt-state="active">
+    <g class="pelt-bg">
+      <rect width="240" height="60" rx="var(--pelt-radius, 8)" fill="#0f3460"/>
+    </g>
+    <g class="pelt-border">
+      <rect width="240" height="60" rx="var(--pelt-radius, 8)"
+            fill="none" stroke="var(--pelt-accent, #e94560)" stroke-width="3"/>
+    </g>
+  </g>
+
+  <g data-pelt-state="disabled">
+    <g class="pelt-bg">
+      <rect width="240" height="60" rx="var(--pelt-radius, 8)" fill="#2a2a3e"/>
+    </g>
+    <g class="pelt-border">
+      <rect width="240" height="60" rx="var(--pelt-radius, 8)"
+            fill="none" stroke="#555" stroke-width="1"/>
+    </g>
+  </g>
+</svg>
