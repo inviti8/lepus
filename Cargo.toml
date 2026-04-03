@@ -42,6 +42,7 @@ exclude = [
 
   # Excluded because they are used only as dependencies, not top-level targets,
   # so we don't need to vendor their dev-dependencies.
+  "gfx/vello_bindings",  # LEPUS
   "gfx/webrender_bindings",
   "media/mp4parse-rust/mp4parse",
   "media/mp4parse-rust/mp4parse_capi",
@@ -53,6 +54,8 @@ exclude = [
   "dom/base/rust",
   "dom/origin-trials/ffi",
   "ipc/rust/ipdl_utils",
+  "netwerk/hvym",  # LEPUS
+  "contracts/hvym-name-registry",  # LEPUS
   "tools/update-verify/marannon",
 
   # Excluded because we don't want to vendor their dependencies.

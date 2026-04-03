@@ -64,6 +64,8 @@ extern crate webext_storage;
 #[cfg(feature = "webrtc")]
 extern crate mdns_service;
 extern crate neqo_glue;
+extern crate vello_bindings; // LEPUS
+extern crate hvym_resolver; // LEPUS
 extern crate wgpu_bindings;
 
 extern crate aa_stroke;
