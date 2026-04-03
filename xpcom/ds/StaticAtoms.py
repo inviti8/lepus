@@ -1026,6 +1026,7 @@ STATIC_ATOMS = [
     Atom("patternSeparator", "pattern-separator"),
     Atom("perMille", "per-mille"),
     Atom("percent", "percent"),
+    Atom("pelt", "pelt"),  # LEPUS
     Atom("persist", "persist"),
     Atom("phase", "phase"),
     Atom("picture", "picture"),

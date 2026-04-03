@@ -84,6 +84,7 @@ EXPORTS.mozilla.dom += [
     "HTMLOptionsCollection.h",
     "HTMLOutputElement.h",
     "HTMLParagraphElement.h",
+    "HTMLPeltElement.h",  # LEPUS
     "HTMLPictureElement.h",
     "HTMLPreElement.h",
     "HTMLProgressElement.h",
@@ -162,6 +163,7 @@ UNIFIED_SOURCES += [
     "HTMLOptionsCollection.cpp",
     "HTMLOutputElement.cpp",
     "HTMLParagraphElement.cpp",
+    "HTMLPeltElement.cpp",  # LEPUS
     "HTMLPictureElement.cpp",
     "HTMLPreElement.cpp",
     "HTMLProgressElement.cpp",

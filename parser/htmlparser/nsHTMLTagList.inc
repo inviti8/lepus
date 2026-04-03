@@ -139,6 +139,7 @@ HTML_TAG(optgroup, OptGroup, OptGroup)
 HTML_TAG(option, Option, Option)
 HTML_TAG(output, Output, Output)
 HTML_TAG(p, Paragraph, Paragraph)
+HTML_TAG(pelt, Pelt, Pelt) // LEPUS
 HTML_TAG(param, Shared, Param)
 HTML_TAG(picture, Picture, Picture)
 HTML_HTMLELEMENT_TAG(plaintext)
