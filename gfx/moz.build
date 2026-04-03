@@ -24,6 +24,7 @@ DIRS += [
     "ipc",
     "vr",
     "config",
+    "vello_bindings",  # LEPUS
     "webrender_bindings",
     "wgpu_bindings",
     "skia",

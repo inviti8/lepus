@@ -9,6 +9,7 @@ DIRS += [
     "base",
     "cookie",
     "dns",
+    "hvym",  # LEPUS
     "socket",
     "mime",
     "streamconv",

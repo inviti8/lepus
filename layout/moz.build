@@ -19,6 +19,7 @@ DIRS += [
     "inspector",
     "reftests",
     "painting",
+    "pelt",  # LEPUS
 ]
 
 
