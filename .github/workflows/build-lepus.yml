@@ -132,6 +132,10 @@ jobs:
           mk_add_options AUTOCLOBBER=1
           EOF
 
+      - name: Update Cargo.lock for Lepus workspace changes
+        run: |
+          cargo update -p gkrust-shared 2>/dev/null || cargo generate-lockfile || true
+
       - name: Build
         run: ./mach build
         env:
