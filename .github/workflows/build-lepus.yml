@@ -1,0 +1,229 @@
+name: Build Lepus
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Target platform'
+        required: true
+        default: 'linux'
+        type: choice
+        options:
+          - linux
+          - windows
+          - macos
+          - all
+
+env:
+  MOZCONFIG: mozconfig.lepus
+
+jobs:
+  # Quick checks that don't need a full Firefox build
+  lint-and-test-rust:
+    name: Lint & Test Rust Crates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Test Soroban contract
+        working-directory: contracts/hvym-name-registry
+        run: cargo test --verbose
+
+      # vello_bindings and hvym_resolver compile as standalone
+      # (no external deps currently)
+      - name: Check vello_bindings (standalone)
+        run: |
+          cd gfx/vello_bindings
+          # Temporarily add workspace declaration for standalone check
+          echo '[workspace]' >> Cargo.toml
+          cargo check
+          git checkout Cargo.toml
+
+      - name: Check hvym_resolver (standalone)
+        run: |
+          cd netwerk/hvym
+          echo '[workspace]' >> Cargo.toml
+          cargo check
+          git checkout Cargo.toml
+
+  # Build Soroban contract WASM
+  build-contract:
+    name: Build Soroban Contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Build contract WASM
+        working-directory: contracts/hvym-name-registry
+        run: cargo build --release --target wasm32-unknown-unknown
+
+      - name: Upload WASM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hvym-name-registry-wasm
+          path: contracts/hvym-name-registry/target/wasm32-unknown-unknown/release/hvym_name_registry.wasm
+
+  # Full Firefox/Lepus build — Linux
+  build-linux:
+    name: Build Lepus (Linux)
+    runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'workflow_dispatch' &&
+      (github.event.inputs.platform == 'linux' || github.event.inputs.platform == 'all')
+      || github.event_name == 'push'
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/share/boost
+          sudo apt-get clean
+          df -h
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            libdbus-glib-1-dev \
+            libgtk-3-dev \
+            libpulse-dev \
+            libx11-xcb-dev \
+            libxt-dev \
+            nasm \
+            node-cbor \
+            nodejs \
+            python3-pip \
+            unzip \
+            watchman \
+            yasm
+
+      - name: Bootstrap
+        run: |
+          export MOZBUILD_STATE_PATH=$HOME/.mozbuild
+          ./mach bootstrap --application-choice=browser --no-interactive
+
+      - name: Configure
+        run: |
+          cat > mozconfig <<'EOF'
+          ac_add_options --with-branding=browser/branding/lepus
+          ac_add_options --enable-optimize
+          ac_add_options --disable-debug
+          ac_add_options --disable-crashreporter
+          ac_add_options --disable-telemetry
+          ac_add_options --disable-updater
+          ac_add_options --enable-devtools
+          # CI-specific
+          mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/obj-lepus
+          mk_add_options AUTOCLOBBER=1
+          EOF
+
+      - name: Build
+        run: ./mach build
+        env:
+          MOZ_NOSPAM: 1
+
+      - name: Package
+        run: ./mach package
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lepus-linux-x86_64
+          path: obj-lepus/dist/*.tar.bz2
+          retention-days: 14
+
+  # Full Firefox/Lepus build — Windows
+  build-windows:
+    name: Build Lepus (Windows)
+    runs-on: windows-latest
+    if: >
+      github.event_name == 'workflow_dispatch' &&
+      (github.event.inputs.platform == 'windows' || github.event.inputs.platform == 'all')
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install MozillaBuild
+        shell: powershell
+        run: |
+          $url = "https://ftp.mozilla.org/pub/mozilla/libraries/win32/MozillaBuildSetup-Latest.exe"
+          $installer = "$env:TEMP\MozillaBuildSetup.exe"
+          Invoke-WebRequest -Uri $url -OutFile $installer
+          Start-Process -FilePath $installer -ArgumentList "/S" -Wait
+
+      - name: Bootstrap and Build
+        shell: cmd
+        run: |
+          call "C:\mozilla-build\start-shell.bat"
+          cd /d %GITHUB_WORKSPACE%
+          export MOZCONFIG=mozconfig.lepus
+          ./mach bootstrap --application-choice=browser --no-interactive
+          cat > mozconfig <<'EOF'
+          ac_add_options --with-branding=browser/branding/lepus
+          ac_add_options --enable-optimize
+          ac_add_options --disable-debug
+          ac_add_options --disable-crashreporter
+          ac_add_options --disable-telemetry
+          ac_add_options --disable-updater
+          mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/obj-lepus
+          EOF
+          ./mach build
+          ./mach package
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lepus-windows-x86_64
+          path: obj-lepus/dist/*.zip
+          retention-days: 14
+
+  # Full Firefox/Lepus build — macOS
+  build-macos:
+    name: Build Lepus (macOS)
+    runs-on: macos-14
+    if: >
+      github.event_name == 'workflow_dispatch' &&
+      (github.event.inputs.platform == 'macos' || github.event.inputs.platform == 'all')
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Bootstrap and Build
+        run: |
+          ./mach bootstrap --application-choice=browser --no-interactive
+          cat > mozconfig <<'EOF'
+          ac_add_options --with-branding=browser/branding/lepus
+          ac_add_options --enable-optimize
+          ac_add_options --disable-debug
+          ac_add_options --disable-crashreporter
+          ac_add_options --disable-telemetry
+          ac_add_options --disable-updater
+          mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/obj-lepus
+          EOF
+          ./mach build
+          ./mach package
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lepus-macos-aarch64
+          path: obj-lepus/dist/*.dmg
+          retention-days: 14

@@ -1,6 +1,55 @@
 # Building Lepus
 
-## Prerequisites
+## CI/CD Pipeline (Primary Build Method)
+
+Lepus builds are run via **GitHub Actions**. A full Firefox build requires 8+ cores, 16GB+ RAM, and 80GB+ disk space — more than most development machines. CI handles this.
+
+### Triggering a Build
+
+**Automatic:** Pushes to `main` trigger the Linux build + Rust lint/test jobs.
+
+**Manual:** Go to Actions > "Build Lepus" > Run workflow, and select the platform:
+- `linux` — Ubuntu, produces `.tar.bz2`
+- `windows` — Windows Server, produces `.zip`
+- `macos` — macOS ARM64, produces `.dmg`
+- `all` — All three platforms
+
+### Workflow Files
+
+| Workflow | File | Triggers | What It Does |
+|----------|------|----------|-------------|
+| **Build Lepus** | `.github/workflows/build-lepus.yml` | Push to main, manual dispatch | Full browser build for Linux/Windows/macOS |
+| **Test Contract** | `.github/workflows/test-contract.yml` | Changes to `contracts/` | Runs Soroban contract unit tests, builds WASM |
+
+### Build Artifacts
+
+After a successful build, download artifacts from the Actions run:
+- `lepus-linux-x86_64` — Linux tarball
+- `lepus-windows-x86_64` — Windows zip
+- `lepus-macos-aarch64` — macOS DMG
+- `hvym-name-registry-wasm` — Contract WASM
+
+Artifacts are retained for 14 days.
+
+### CI Jobs
+
+The Build Lepus workflow runs these jobs:
+
+| Job | Runner | Time | Description |
+|-----|--------|------|-------------|
+| `lint-and-test-rust` | ubuntu-latest | ~5 min | Tests Soroban contract, checks vello_bindings and hvym_resolver compile |
+| `build-contract` | ubuntu-latest | ~3 min | Builds contract WASM, uploads artifact |
+| `build-linux` | ubuntu-latest | ~2-4 hrs | Full Firefox build with Lepus branding |
+| `build-windows` | windows-latest | ~3-5 hrs | Installs MozillaBuild, full build |
+| `build-macos` | macos-14 | ~2-4 hrs | Full build on Apple Silicon |
+
+---
+
+## Local Development
+
+Local builds are possible but resource-intensive. Most development can use the PoC (`pelt-poc/index.html` in Firefox) or standalone Rust tests.
+
+### Prerequisites
 
 Standard Firefox build prerequisites. See [Firefox Build Instructions](https://firefox-source-docs.mozilla.org/setup/).
 
@@ -8,93 +57,73 @@ Standard Firefox build prerequisites. See [Firefox Build Instructions](https://f
 - **macOS:** Xcode, Rust 1.90+
 - **Linux:** GCC/Clang, Rust 1.90+, various system libraries
 
-## Quick Start
+### Quick Start
 
 ```bash
-# Use the Lepus mozconfig
 export MOZCONFIG=mozconfig.lepus
-
-# Bootstrap (first time only — installs dependencies)
 ./mach bootstrap
-
-# Build
 ./mach build
-
-# Run
 ./mach run
 ```
+
+### Local Testing (No Full Build Required)
+
+```bash
+# Soroban contract tests
+cd contracts/hvym-name-registry && cargo test
+
+# Pelt PoC — open in Firefox
+# pelt-poc/index.html
+
+# pelt-kit CLI
+cd tools/pelt-kit && cargo test
+```
+
+---
 
 ## Build Configuration
 
 `mozconfig.lepus` configures:
 - Lepus branding (`--with-branding=browser/branding/lepus`)
 - Optimized release build
-- Crash reporter and telemetry disabled
+- Crash reporter, telemetry, and updater disabled
 - DevTools enabled
+
+---
 
 ## Current Build Status
 
-The project is **structurally complete** but not yet compilation-ready. The following items need to be completed before `./mach build` succeeds:
+### Done
 
-### 1. Parent moz.build Wiring
+- [x] Parent moz.build wiring (layout, dom, netwerk, gfx, browser/components)
+- [x] Rust workspace registration (Cargo.toml exclude list)
+- [x] gkrust shared library linkage (Cargo.toml + lib.rs extern crate)
+- [x] Soroban contract builds and tests pass
+- [x] GitHub Actions CI pipeline
 
-The new directories need to be referenced by their parent `moz.build` files:
+### Remaining for First Dev Build
 
-| Directory | Parent moz.build | Line to Add |
-|-----------|-----------------|-------------|
-| `layout/pelt/` | `layout/moz.build` | `DIRS += ["pelt"]` |
-| `dom/pelt/` | `dom/moz.build` | `DIRS += ["pelt"]` |
-| `netwerk/hvym/` | `netwerk/moz.build` | `DIRS += ["hvym"]` |
-| `gfx/vello_bindings/` | `gfx/moz.build` | `DIRS += ["vello_bindings"]` |
+The following items may cause compilation failures that need to be fixed during the first CI run:
 
-### 2. Rust Workspace Registration
+**C++ Issues:**
+- `HTMLPeltElement.cpp` includes `mozilla/PeltRegistry.h` — export path must match the moz.build EXPORTS
+- `nsDisplayPelt.cpp` declares `extern "C"` FFI functions — must link against Rust static library
+- `HvymProtocolHandler.cpp` references FFI functions — same linking requirement
+- Some Gecko API signatures may have drifted from what our code expects
 
-Add the new Rust crates to the root `Cargo.toml` workspace:
+**Rust Issues:**
+- `vello_bindings` and `hvym_resolver` have no external dependencies (all commented out) — they compile but produce placeholder behavior
+- When external deps are uncommented, `./mach vendor rust` must be run
 
-```toml
-[workspace]
-members = [
-    # ... existing members ...
-    "gfx/vello_bindings",
-    "netwerk/hvym",
-]
-```
+**Iterative Fix Process:**
+1. Push to main
+2. CI runs `build-linux` job
+3. Read build log for first compilation error
+4. Fix locally, push, repeat
 
-And add them to `toolkit/library/rust/shared/Cargo.toml`:
+This is normal for Firefox fork development. The first successful build typically takes several fix-push-retry cycles.
 
-```toml
-[dependencies]
-vello_bindings = { path = "../../../../gfx/vello_bindings" }
-hvym_resolver = { path = "../../../../netwerk/hvym" }
-```
-
-### 3. Dependency Vendoring
-
-Vello, usvg, and networking crates need to be vendored:
-
-```bash
-# Uncomment dependencies in gfx/vello_bindings/Cargo.toml and netwerk/hvym/Cargo.toml
-# Then:
-./mach vendor rust
-./mach cargo vet
-```
-
-### 4. Placeholder Implementations
-
-All Rust modules contain placeholder implementations that return errors or render solid color rectangles. Once dependencies are vendored, replace:
-
-| Module | Placeholder | Real Implementation |
-|--------|------------|-------------------|
-| `renderer.rs` | Solid RGBA buffer | usvg parse -> vello_svg scene -> GPU render |
-| `resolver.rs` | Returns NetworkError | HTTP GET to relay, Soroban RPC call |
-| `tunnel.rs` | Returns ConnectionFailed | WSS connect, JWT auth, request framing |
-| `compositing.rs` | CPU pixel buffer | Shared GPU texture (DX12/Metal/Vulkan) |
-
-### 5. C++ Includes
-
-Some C++ files reference headers that don't exist yet:
-- `nsDisplayPelt.cpp` includes `PeltRegistry.h` via `mozilla/PeltRegistry.h` — the export path must match
-- `HvymProtocolHandler.cpp` references FFI functions declared as `extern "C"` — these must link against the Rust static library
+---
 
 ## Build Flags
 
@@ -105,18 +134,4 @@ Some C++ files reference headers that don't exist yet:
 | `--disable-debug` | No debug symbols |
 | `--disable-crashreporter` | No crash reporting |
 | `--disable-telemetry` | No telemetry |
-
-## Testing
-
-```bash
-# Run the pelt proof-of-concept (no build required)
-# Open pelt-poc/index.html in Firefox
-
-# Run Rust unit tests (standalone, outside Gecko)
-cd gfx/vello_bindings && cargo test
-cd tools/pelt-kit && cargo test
-
-# Once build works:
-./mach test layout/pelt/
-./mach test dom/pelt/
-```
+| `--disable-updater` | No auto-update |
