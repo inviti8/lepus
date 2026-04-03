@@ -6,13 +6,15 @@ license = "MPL-2.0"
 description = "FFI bindings for Vello GPU 2D renderer integration with Gecko"
 
 [dependencies]
-# Vello rendering pipeline
+# Dependencies are commented until vendored via ./mach vendor rust.
+# Uncomment and run: ./mach vendor rust && ./mach cargo vet
+#
 # vello = { version = "0.8", default-features = false }
 # vello_svg = { version = "0.9" }
 # usvg = { version = "0.46" }
+# wgpu = { version = "28.0" }
 
-# These will be enabled once dependencies are vendored via ./mach vendor rust.
-# For now this crate compiles as a no-op skeleton.
+# For now, use only std types so the crate compiles standalone.
 
 [lib]
 name = "vello_bindings"
