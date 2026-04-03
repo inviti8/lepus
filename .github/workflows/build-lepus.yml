@@ -118,7 +118,7 @@ jobs:
       - name: Bootstrap
         run: |
           export MOZBUILD_STATE_PATH=$HOME/.mozbuild
-          ./mach bootstrap --application-choice=browser --no-interactive
+          echo 1 | ./mach bootstrap --application-choice=browser
 
       - name: Configure
         run: |
@@ -175,7 +175,7 @@ jobs:
           call "C:\mozilla-build\start-shell.bat"
           cd /d %GITHUB_WORKSPACE%
           export MOZCONFIG=mozconfig.lepus
-          ./mach bootstrap --application-choice=browser --no-interactive
+          echo 1 | ./mach bootstrap --application-choice=browser
           cat > mozconfig <<'EOF'
           ac_add_options --with-branding=browser/branding/lepus
           ac_add_options --enable-optimize
@@ -208,7 +208,7 @@ jobs:
 
       - name: Bootstrap and Build
         run: |
-          ./mach bootstrap --application-choice=browser --no-interactive
+          echo 1 | ./mach bootstrap --application-choice=browser
           cat > mozconfig <<'EOF'
           ac_add_options --with-branding=browser/branding/lepus
           ac_add_options --enable-optimize
