@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Lepus Pelt System — Proof of Concept</title>
+  <style>
+    :root {
+      --pelt-surface: rgba(255, 255, 255, 0.08);
+      --pelt-surface-end: rgba(255, 255, 255, 0.02);
+      --pelt-border: rgba(255, 255, 255, 0.15);
+      --pelt-accent: #e94560;
+      --pelt-radius: 16;
+    }
+
+    body {
+      background: #0a0e14;
+      color: #e8e0d4;
+      font-family: system-ui, -apple-system, sans-serif;
+      padding: 40px;
+      margin: 0;
+    }
+
+    h1 { margin-bottom: 8px; }
+    p.subtitle { color: #8a8078; margin-top: 0; }
+
+    .demo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 24px;
+      margin-top: 32px;
+    }
+
+    .demo-card {
+      padding: 32px;
+      min-height: 120px;
+    }
+
+    .demo-card h2 { margin-top: 0; font-size: 18px; }
+    .demo-card p { font-size: 14px; color: #b0a898; }
+
+    .demo-button {
+      display: inline-block;
+      padding: 12px 32px;
+      font-size: 16px;
+      font-weight: bold;
+      color: #e8e0d4;
+      border: none;
+      cursor: pointer;
+      background: transparent;
+      margin: 8px;
+    }
+
+    .button-row {
+      margin-top: 32px;
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    /* Override section — shows theming via CSS custom properties */
+    .themed-section {
+      margin-top: 48px;
+      padding: 24px;
+      --pelt-surface: rgba(90, 114, 71, 0.15);
+      --pelt-surface-end: rgba(90, 114, 71, 0.05);
+      --pelt-border: rgba(90, 114, 71, 0.3);
+      --pelt-accent: #5a7247;
+    }
+
+    .themed-section h2 { margin-top: 0; }
+  </style>
+</head>
+<body>
+
+<h1>Lepus Pelt System</h1>
+<p class="subtitle">Proof of concept — SVG skins applied via -moz-element() (Firefox only)</p>
+
+<!-- ============================================================
+     PELT DEFINITIONS
+     These <pelt> elements are invisible. They define SVG skins
+     that get applied to other elements via the pelt="" attribute.
+     ============================================================ -->
+
+<pelt id="glass-card">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">
+    <defs>
+      <linearGradient id="glass-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="rgba(255,255,255,0.08)" />
+        <stop offset="100%" stop-color="rgba(255,255,255,0.02)" />
+      </linearGradient>
+    </defs>
+    <rect width="400" height="300" rx="16" fill="url(#glass-grad)" opacity="0.9" />
+    <rect width="400" height="300" rx="16" fill="none"
+          stroke="rgba(255,255,255,0.15)" stroke-width="1" />
+  </svg>
+</pelt>
+
+<pelt id="neon-button">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 60">
+    <defs>
+      <filter id="neon-glow" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur" />
+      </filter>
+    </defs>
+    <rect width="240" height="60" rx="8" fill="#1a1a2e" />
+    <rect width="240" height="60" rx="8" fill="none"
+          stroke="#e94560" stroke-width="2" />
+    <rect width="240" height="60" rx="8" fill="none"
+          stroke="#e94560" stroke-width="1" opacity="0.4"
+          filter="url(#neon-glow)" />
+  </svg>
+</pelt>
+
+<pelt id="neon-button-hover">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 60">
+    <defs>
+      <filter id="neon-glow-h" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur" />
+      </filter>
+    </defs>
+    <rect width="240" height="60" rx="8" fill="#16213e" />
+    <rect width="240" height="60" rx="8" fill="none"
+          stroke="#e94560" stroke-width="3" />
+    <rect width="240" height="60" rx="8" fill="none"
+          stroke="#e94560" stroke-width="2" opacity="0.6"
+          filter="url(#neon-glow-h)" />
+  </svg>
+</pelt>
+
+<pelt id="organic-frame">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">
+    <rect width="400" height="300" rx="24" fill="rgba(245,240,230,0.04)" />
+    <rect width="400" height="300" rx="24" fill="none"
+          stroke="rgba(90,114,71,0.3)" stroke-width="2" stroke-dasharray="8 4" />
+    <circle cx="24" cy="24" r="6" fill="rgba(90,114,71,0.4)" />
+    <circle cx="376" cy="24" r="6" fill="rgba(90,114,71,0.4)" />
+    <circle cx="24" cy="276" r="6" fill="rgba(90,114,71,0.4)" />
+    <circle cx="376" cy="276" r="6" fill="rgba(90,114,71,0.4)" />
+  </svg>
+</pelt>
+
+<!-- ============================================================
+     PELTED ELEMENTS
+     These use the pelt="" attribute to reference skin definitions.
+     ============================================================ -->
+
+<div class="demo-grid">
+  <div class="demo-card" pelt="glass-card">
+    <h2>Glass Card</h2>
+    <p>This card uses the glass-card pelt — a frosted glass effect with a subtle gradient and thin border. Drawn in SVG, not CSS.</p>
+  </div>
+
+  <div class="demo-card" pelt="glass-card">
+    <h2>Same Pelt, Different Content</h2>
+    <p>Multiple elements can share the same pelt definition. The SVG stretches to fill the element's bounding rect.</p>
+  </div>
+
+  <div class="demo-card" pelt="organic-frame">
+    <h2>Organic Frame</h2>
+    <p>A nature-inspired frame with dashed borders and corner accents. This visual cannot be achieved with CSS border properties alone.</p>
+  </div>
+</div>
+
+<div class="button-row">
+  <button class="demo-button" pelt="neon-button" pelt-hover="neon-button-hover">
+    Neon Button
+  </button>
+  <button class="demo-button" pelt="neon-button" pelt-hover="neon-button-hover">
+    Another Button
+  </button>
+</div>
+
+<div class="themed-section">
+  <h2>Theme Override Section</h2>
+  <p>When the engine integration is complete, CSS custom properties (--pelt-*) will flow into pelt SVGs via var() references, enabling per-section theming.</p>
+  <div class="demo-grid">
+    <div class="demo-card" pelt="glass-card">
+      <h2>Themed Card</h2>
+      <p>Same glass-card pelt, but in a green-themed section.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     PELT ENGINE (JavaScript proof-of-concept)
+     This script implements the pelt system using -moz-element().
+     In the real Lepus browser, this logic lives in Gecko C++/Rust.
+     ============================================================ -->
+<script src="pelt-engine.js"></script>
+
+</body>
+</html>

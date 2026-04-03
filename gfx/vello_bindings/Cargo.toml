@@ -1,0 +1,19 @@
+[package]
+name = "vello_bindings"
+version = "0.1.0"
+edition = "2021"
+license = "MPL-2.0"
+description = "FFI bindings for Vello GPU 2D renderer integration with Gecko"
+
+[dependencies]
+# Vello rendering pipeline
+# vello = { version = "0.8", default-features = false }
+# vello_svg = { version = "0.9" }
+# usvg = { version = "0.46" }
+
+# These will be enabled once dependencies are vendored via ./mach vendor rust.
+# For now this crate compiles as a no-op skeleton.
+
+[lib]
+name = "vello_bindings"
+crate-type = ["staticlib"]

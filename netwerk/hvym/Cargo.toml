@@ -1,0 +1,16 @@
+[package]
+name = "hvym_resolver"
+version = "0.1.0"
+edition = "2021"
+license = "MPL-2.0"
+description = "HVYM subnet name resolver, tunnel manager, and @ address parser for Lepus"
+
+[dependencies]
+# Soroban RPC client and Stellar primitives
+# Will be added once dependencies are vendored.
+
+# For now this crate compiles as a no-op skeleton.
+
+[lib]
+name = "hvym_resolver"
+crate-type = ["staticlib"]
