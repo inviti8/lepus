@@ -42,7 +42,7 @@ void HTMLPeltElement::RegisterWithPeltRegistry() {
   for (nsIContent* child = GetFirstChild(); child;
        child = child->GetNextSibling()) {
     if (child->IsSVGElement(nsGkAtoms::svg)) {
-      child->GetMarkup(true, svgSource);
+      child->AsElement()->GetOuterHTML(svgSource);
       break;
     }
   }
