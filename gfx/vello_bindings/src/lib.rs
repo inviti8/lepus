@@ -2,6 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+// Placeholder implementations have many unused items until Vello deps are vendored.
+#![allow(dead_code)]
+
 //! LEPUS: Vello GPU 2D renderer bindings for Gecko.
 //!
 //! This crate provides the FFI surface between Gecko's C++ display list

@@ -85,20 +85,20 @@ impl PeltCompositor {
 // C FFI for WebRender integration
 // These are called from gfx/webrender_bindings/ C++ code.
 
-static mut COMPOSITOR: Option<PeltCompositor> = None;
+use std::sync::Mutex;
+
+static COMPOSITOR: Mutex<Option<PeltCompositor>> = Mutex::new(None);
 
 #[no_mangle]
 pub extern "C" fn vello_compositor_init() {
-    unsafe {
-        COMPOSITOR = Some(PeltCompositor::new());
-    }
+    let mut guard = COMPOSITOR.lock().unwrap();
+    *guard = Some(PeltCompositor::new());
 }
 
 #[no_mangle]
 pub extern "C" fn vello_compositor_shutdown() {
-    unsafe {
-        COMPOSITOR = None;
-    }
+    let mut guard = COMPOSITOR.lock().unwrap();
+    *guard = None;
 }
 
 #[no_mangle]
@@ -113,11 +113,10 @@ pub extern "C" fn vello_compositor_register(
         return false;
     }
     let pixel_data = unsafe { std::slice::from_raw_parts(pixels, pixel_len) }.to_vec();
-    unsafe {
-        if let Some(compositor) = COMPOSITOR.as_mut() {
-            compositor.register_texture(id, pixel_data, width, height);
-            return true;
-        }
+    let mut guard = COMPOSITOR.lock().unwrap();
+    if let Some(compositor) = guard.as_mut() {
+        compositor.register_texture(id, pixel_data, width, height);
+        return true;
     }
     false
 }
@@ -130,12 +129,11 @@ pub extern "C" fn vello_compositor_lock(
     if out_data.is_null() {
         return false;
     }
-    unsafe {
-        if let Some(compositor) = COMPOSITOR.as_ref() {
-            if let Some(data) = compositor.lock(id) {
-                *out_data = data;
-                return true;
-            }
+    let guard = COMPOSITOR.lock().unwrap();
+    if let Some(compositor) = guard.as_ref() {
+        if let Some(data) = compositor.lock(id) {
+            unsafe { *out_data = data; }
+            return true;
         }
     }
     false
@@ -143,9 +141,8 @@ pub extern "C" fn vello_compositor_lock(
 
 #[no_mangle]
 pub extern "C" fn vello_compositor_unlock(id: u64) {
-    unsafe {
-        if let Some(compositor) = COMPOSITOR.as_ref() {
-            compositor.unlock(id);
-        }
+    let guard = COMPOSITOR.lock().unwrap();
+    if let Some(compositor) = guard.as_ref() {
+        compositor.unlock(id);
     }
 }
