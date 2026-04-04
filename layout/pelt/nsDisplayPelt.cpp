@@ -8,7 +8,6 @@
 
 #include "PeltRegistry.h"
 #include "Units.h"
-#include "gfxContext.h"
 #include "nsIFrame.h"
 #include "nsPresContext.h"
 
@@ -39,25 +38,8 @@ nsDisplayPelt::nsDisplayPelt(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
 }
 
 void nsDisplayPelt::Paint(nsDisplayListBuilder* aBuilder, gfxContext* aCtx) {
-  // Software fallback path. In production, CreateWebRenderCommands() is
-  // the primary path (WebRender is always enabled in modern Firefox).
-  // This Paint() implementation serves as a fallback for testing and
-  // environments where WebRender is disabled.
-
-  if (!mDef) return;
-
-  nsRect bounds = GetBounds(aBuilder, nullptr);
-  nsPresContext* pc = mFrame->PresContext();
-  int32_t appUnitsPerDevPixel = pc->AppUnitsPerDevPixel();
-
-  gfx::Rect rect = NSRectToSnappedRect(bounds, appUnitsPerDevPixel,
-                                        *aCtx->GetDrawTarget());
-
-  // Draw a placeholder rectangle in the pelt's palette color.
-  // When Vello is fully integrated, this calls vello_pelt_render()
-  // and blits the resulting pixel buffer.
-  aCtx->SetColor(gfx::sRGBColor(0.1f, 0.16f, 0.1f, 0.78f));
-  aCtx->Fill(rect);
+  // No-op. WebRender is always enabled in modern Firefox, so
+  // CreateWebRenderCommands() is the only active render path.
 }
 
 bool nsDisplayPelt::CreateWebRenderCommands(
