@@ -68,7 +68,7 @@ The `<pelt>` DOM element. Invisible by default (`display: none` in UA stylesheet
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
-| `RegisterWithPeltRegistry()` | `void RegisterWithPeltRegistry()` | Extracts inline SVG child markup via `static_cast<FragmentOrElement*>(child)->GetMarkup(true, svgSource)` (includes the `<svg>` tag itself), parses scale mode and slice values from attributes, creates a `PeltDefinition`, and stores it in `PeltRegistry` keyed by the element's `id`. Requires `#include "mozilla/dom/FragmentOrElement.h"`. |
+| `RegisterWithPeltRegistry()` | `void RegisterWithPeltRegistry()` | Extracts SVG content via `GetMarkup(false, svgSource)` (inherited from `FragmentOrElement`, returns innerHTML of this `<pelt>` element). Parses scale mode and slice values from attributes, creates a `PeltDefinition`, and stores it in `PeltRegistry` keyed by the element's `id`. |
 | `UnregisterFromPeltRegistry()` | `void UnregisterFromPeltRegistry()` | Removes this element's `PeltDefinition` from `PeltRegistry`. |
 | `FetchExternalSvg()` | `void FetchExternalSvg(const nsAString& aUrl)` | Placeholder for async Necko fetch of external SVG file when `src` attribute is set. Will create a channel, fetch, parse, and call `RegisterWithPeltRegistry()` with the result. |
 

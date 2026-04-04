@@ -7,7 +7,6 @@
 #include "mozilla/dom/HTMLPeltElement.h"
 
 #include "mozilla/PeltRegistry.h"
-#include "mozilla/dom/FragmentOrElement.h"
 #include "mozilla/dom/HTMLPeltElementBinding.h"
 #include "nsContentUtils.h"
 #include "nsGkAtoms.h"
@@ -38,15 +37,11 @@ void HTMLPeltElement::RegisterWithPeltRegistry() {
   GetAttr(nsGkAtoms::id, id);
   if (id.IsEmpty()) return;
 
-  // Extract SVG source from child <svg> element
+  // Extract SVG content. GetMarkup(false) returns innerHTML of this
+  // <pelt> element, which should be the child <svg>.
+  // GetMarkup is protected on FragmentOrElement, but we inherit from it.
   nsAutoString svgSource;
-  for (nsIContent* child = GetFirstChild(); child;
-       child = child->GetNextSibling()) {
-    if (child->IsSVGElement(nsGkAtoms::svg)) {
-      static_cast<dom::FragmentOrElement*>(child)->GetMarkup(true, svgSource);
-      break;
-    }
-  }
+  GetMarkup(false, svgSource);
   if (svgSource.IsEmpty()) return;
 
   // Parse scale mode from attribute
