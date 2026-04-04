@@ -6,6 +6,7 @@
 
 #include "HvymProtocolHandler.h"
 
+#include "nsIChannel.h"
 #include "nsIURI.h"
 #include "nsNetUtil.h"
 
