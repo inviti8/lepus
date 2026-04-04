@@ -64,8 +64,9 @@ extern crate webext_storage;
 #[cfg(feature = "webrtc")]
 extern crate mdns_service;
 extern crate neqo_glue;
-extern crate vello_bindings; // LEPUS
-extern crate hvym_resolver; // LEPUS
+// LEPUS: vello_bindings and hvym_resolver are compiled as standalone
+// static libraries by moz.build, not linked through gkrust. Their FFI
+// symbols are resolved at final link time in libxul.
 extern crate wgpu_bindings;
 
 extern crate aa_stroke;
