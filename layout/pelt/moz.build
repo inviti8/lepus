@@ -18,6 +18,8 @@ UNIFIED_SOURCES += [
 
 LOCAL_INCLUDES += [
     "/gfx/webrender_bindings",
+    "/layout/base",
+    "/layout/generic",
     "/layout/painting",
 ]
 

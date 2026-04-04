@@ -9,9 +9,6 @@
 #include "PeltRegistry.h"
 #include "Units.h"
 #include "gfxContext.h"
-#include "mozilla/layers/RenderRootStateManager.h"
-#include "mozilla/layers/StackingContextHelper.h"
-#include "mozilla/PresShell.h"
 #include "nsIFrame.h"
 #include "nsPresContext.h"
 
