@@ -11,3 +11,9 @@ ac_add_options --disable-debug
 # Disable crash reporting and telemetry for the fork
 ac_add_options --disable-crashreporter
 export MOZ_TELEMETRY_REPORTING=
+
+# Object directory on D: drive (keep C: free)
+mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/obj-lepus
+
+# Limit parallelism for 16GB RAM machines
+mk_add_options MOZ_MAKE_FLAGS="-j4"
