@@ -212,6 +212,10 @@ struct nsContentAndOffset {
 #include "nsILineIterator.h"
 #include "prenv.h"
 
+// LEPUS: Pelt system includes
+#include "mozilla/PeltRegistry.h"
+#include "mozilla/nsDisplayPelt.h"
+
 FrameDestroyContext::~FrameDestroyContext() {
   for (auto& content : mozilla::Reversed(mAnonymousContent)) {
     mPresShell->NativeAnonymousContentWillBeRemoved(content);
@@ -2670,6 +2674,27 @@ void nsIFrame::DisplayBorderBackgroundOutline(nsDisplayListBuilder* aBuilder,
   // their parent is hidden.
   if (!IsVisibleForPainting()) {
     return;
+  }
+
+  // LEPUS: Check for pelt attribute. If present, render pelt instead of
+  // standard CSS background/border.
+  if (mContent && mContent->IsElement()) {
+    nsAutoString peltId;
+    if (mContent->AsElement()->GetAttr(nsGkAtoms::pelt, peltId) &&
+        !peltId.IsEmpty()) {
+      RefPtr<nsAtom> peltAtom = NS_Atomize(peltId);
+      mozilla::PeltRegistry* registry = mozilla::PeltRegistry::Get();
+      if (registry) {
+        mozilla::PeltDefinition* def = registry->Lookup(peltAtom);
+        if (def) {
+          aLists.BorderBackground()
+              ->AppendNewToTop<mozilla::nsDisplayPelt>(aBuilder, this,
+                                                       peltAtom, def);
+          DisplayOutlineUnconditional(aBuilder, aLists);
+          return;
+        }
+      }
+    }
   }
 
   DisplayOutsetBoxShadowUnconditional(aBuilder, aLists.BorderBackground());

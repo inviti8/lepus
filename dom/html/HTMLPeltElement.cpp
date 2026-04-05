@@ -21,10 +21,13 @@ NS_IMPL_ELEMENT_CLONE(HTMLPeltElement)
 
 nsresult HTMLPeltElement::BindToTree(BindContext& aContext,
                                      nsINode& aParent) {
-  nsresult rv = nsGenericHTMLElement::BindToTree(aContext, aParent);
-  NS_ENSURE_SUCCESS(rv, rv);
+  return nsGenericHTMLElement::BindToTree(aContext, aParent);
+}
+
+void HTMLPeltElement::DoneAddingChildren(bool aHaveNotified) {
+  // Called after all children (including the <svg>) have been parsed.
+  // Now safe to extract SVG markup and register with PeltRegistry.
   RegisterWithPeltRegistry();
-  return NS_OK;
 }
 
 void HTMLPeltElement::UnbindFromTree(UnbindContext& aContext) {

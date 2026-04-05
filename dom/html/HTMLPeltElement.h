@@ -23,6 +23,7 @@ class HTMLPeltElement final : public nsGenericHTMLElement {
   // nsIContent overrides
   nsresult BindToTree(BindContext&, nsINode& aParent) override;
   void UnbindFromTree(UnbindContext&) override;
+  void DoneAddingChildren(bool aHaveNotified) override;
 
   // Attribute getters for WebIDL bindings
   void GetSrc(nsAString& aResult) const {

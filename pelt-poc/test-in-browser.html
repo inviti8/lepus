@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Lepus Pelt Test (In-Browser)</title>
+  <style>
+    body { background: #1a1a2e; color: #e8e0d4; font-family: sans-serif; padding: 40px; }
+    .test-card { padding: 32px; margin: 20px 0; min-height: 100px; }
+    .no-pelt { background: #2a2a4e; border: 1px solid #444; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <h1>Lepus Pelt Engine Test</h1>
+
+  <h2>1. Element with pelt attribute (should show dark green placeholder)</h2>
+  <pelt id="test-skin">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200">
+      <rect width="400" height="200" rx="12" fill="#1a2a1a"/>
+    </svg>
+  </pelt>
+  <div pelt="test-skin" class="test-card">
+    <p>This div has pelt="test-skin". If the pelt engine is working, this should have a dark green background rectangle rendered by nsDisplayPelt.</p>
+  </div>
+
+  <h2>2. Element without pelt (normal CSS background)</h2>
+  <div class="test-card no-pelt">
+    <p>This div uses normal CSS. No pelt attribute.</p>
+  </div>
+
+  <h2>3. Multiple elements sharing a pelt</h2>
+  <div pelt="test-skin" class="test-card">
+    <p>Card A with pelt="test-skin"</p>
+  </div>
+  <div pelt="test-skin" class="test-card">
+    <p>Card B with pelt="test-skin"</p>
+  </div>
+</body>
+</html>

@@ -460,7 +460,8 @@ class nsIContent : public nsINode {
     return (aNamespace == kNameSpaceID_XHTML &&
             (aName == nsGkAtoms::select || aName == nsGkAtoms::textarea ||
              aName == nsGkAtoms::head || aName == nsGkAtoms::title ||
-             aName == nsGkAtoms::object || aName == nsGkAtoms::output)) ||
+             aName == nsGkAtoms::object || aName == nsGkAtoms::output ||
+             aName == nsGkAtoms::pelt)) ||  // LEPUS
            (aNamespace == kNameSpaceID_SVG && aName == nsGkAtoms::title) ||
            (aNamespace == kNameSpaceID_XUL && aName == nsGkAtoms::linkset);
   }
