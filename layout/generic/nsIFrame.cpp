@@ -215,6 +215,7 @@ struct nsContentAndOffset {
 // LEPUS: Pelt system includes
 #include "mozilla/PeltRegistry.h"
 #include "mozilla/nsDisplayPelt.h"
+#include "nsDOMSerializer.h"
 
 FrameDestroyContext::~FrameDestroyContext() {
   for (auto& content : mozilla::Reversed(mAnonymousContent)) {
@@ -2694,11 +2695,17 @@ void nsIFrame::DisplayBorderBackgroundOutline(nsDisplayListBuilder* aBuilder,
         mozilla::dom::Document* doc = mContent->GetComposedDoc();
         mozilla::dom::Element* peltEl = doc->GetElementById(peltId);
         if (peltEl && peltEl->NodeInfo()->NameAtom() == nsGkAtoms::pelt) {
-          // Placeholder SVG source. Full implementation will serialize
-          // the child <svg> element. For now, just confirm the pipeline.
-          nsAutoString svgSource(
-              u"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'>"
-              u"<rect width='1' height='1' fill='#1a2a1a'/></svg>"_ns);
+          // Serialize the first SVG child element to markup
+          nsAutoString svgSource;
+          for (nsIContent* child = peltEl->GetFirstChild(); child;
+               child = child->GetNextSibling()) {
+            if (child->IsSVGElement()) {
+              nsDOMSerializer serializer;
+              mozilla::ErrorResult serializeRv;
+              serializer.SerializeToString(*child, svgSource, serializeRv);
+              break;
+            }
+          }
           if (!svgSource.IsEmpty()) {
             RefPtr<mozilla::PeltDefinition> newDef =
                 new mozilla::PeltDefinition(

@@ -2,16 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// LEPUS: nsDisplayPelt implementation — renders pelt textures via Vello FFI.
+// LEPUS: nsDisplayPelt implementation.
+// Currently uses WebRender's PushRect with a placeholder color extracted
+// from the pelt's SVG source. Full SVG rendering requires Vello integration.
 
 #include "nsDisplayPelt.h"
 
 #include "PeltRegistry.h"
 #include "Units.h"
 #include "nsPresContext.h"
-
-// LEPUS: Vello FFI not yet linked. Pelt rendering is a no-op
-// placeholder until Rust crates are vendored into the Cargo build.
 
 namespace mozilla {
 
@@ -22,8 +21,95 @@ nsDisplayPelt::nsDisplayPelt(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
 }
 
 void nsDisplayPelt::Paint(nsDisplayListBuilder* aBuilder, gfxContext* aCtx) {
-  // No-op. WebRender is always enabled in modern Firefox, so
-  // CreateWebRenderCommands() is the only active render path.
+  // No-op. WebRender is always enabled in modern Firefox.
+}
+
+// Extract the first fill="..." color from SVG source as a simple hex parser.
+static gfx::DeviceColor ExtractFillColor(const nsString& aSvgSource) {
+  // Default: dark green placeholder
+  gfx::DeviceColor fallback(0.1f, 0.16f, 0.1f, 0.78f);
+
+  // Find first fill="..." attribute in the SVG
+  nsAutoString svg(aSvgSource);
+  int32_t fillPos = svg.Find(u"fill=\"");
+  if (fillPos < 0) return fallback;
+
+  int32_t valueStart = fillPos + 6; // skip fill="
+  int32_t valueEnd = svg.FindChar(u'"', valueStart);
+  if (valueEnd < 0) return fallback;
+
+  nsAutoString fillValue;
+  svg.Mid(fillValue, valueStart, valueEnd - valueStart);
+
+  // Skip url(...) references
+  if (StringBeginsWith(fillValue, u"url("_ns) ||
+      fillValue.EqualsLiteral("none")) {
+    // Try to find another fill attribute
+    fillPos = svg.Find(u"fill=\"", valueEnd);
+    if (fillPos < 0) return fallback;
+    valueStart = fillPos + 6;
+    valueEnd = svg.FindChar(u'"', valueStart);
+    if (valueEnd < 0) return fallback;
+    svg.Mid(fillValue, valueStart, valueEnd - valueStart);
+    if (StringBeginsWith(fillValue, u"url("_ns) ||
+        fillValue.EqualsLiteral("none")) {
+      return fallback;
+    }
+  }
+
+  // Parse #RRGGBB
+  if (fillValue.Length() == 7 && fillValue.CharAt(0) == '#') {
+    nsAutoString rStr, gStr, bStr;
+    fillValue.Mid(rStr, 1, 2);
+    fillValue.Mid(gStr, 3, 2);
+    fillValue.Mid(bStr, 5, 2);
+
+    nsresult rv;
+    uint32_t r = rStr.ToInteger(&rv, 16);
+    if (NS_FAILED(rv)) return fallback;
+    uint32_t g = gStr.ToInteger(&rv, 16);
+    if (NS_FAILED(rv)) return fallback;
+    uint32_t b = bStr.ToInteger(&rv, 16);
+    if (NS_FAILED(rv)) return fallback;
+
+    return gfx::DeviceColor(r / 255.0f, g / 255.0f, b / 255.0f, 0.9f);
+  }
+
+  // Parse rgba(R,G,B,A)
+  if (StringBeginsWith(fillValue, u"rgba("_ns)) {
+    nsAutoString inner;
+    fillValue.Mid(inner, 5, fillValue.Length() - 6); // strip rgba( and )
+    // Split by comma
+    nsAutoString parts[4];
+    int32_t partIdx = 0;
+    int32_t start = 0;
+    for (uint32_t i = 0; i < inner.Length() && partIdx < 4; i++) {
+      if (inner.CharAt(i) == ',') {
+        inner.Mid(parts[partIdx], start, i - start);
+        parts[partIdx].StripWhitespace();
+        partIdx++;
+        start = i + 1;
+      }
+    }
+    if (partIdx == 3) {
+      inner.Mid(parts[3], start, inner.Length() - start);
+      parts[3].StripWhitespace();
+    }
+
+    nsresult rv;
+    float r = parts[0].ToFloat(&rv) / 255.0f;
+    if (NS_FAILED(rv)) return fallback;
+    float g = parts[1].ToFloat(&rv) / 255.0f;
+    if (NS_FAILED(rv)) return fallback;
+    float b = parts[2].ToFloat(&rv) / 255.0f;
+    if (NS_FAILED(rv)) return fallback;
+    float a = parts[3].ToFloat(&rv);
+    if (NS_FAILED(rv)) a = 1.0f;
+
+    return gfx::DeviceColor(r, g, b, a);
+  }
+
+  return fallback;
 }
 
 bool nsDisplayPelt::CreateWebRenderCommands(
@@ -33,7 +119,6 @@ bool nsDisplayPelt::CreateWebRenderCommands(
     nsDisplayListBuilder* aDisplayListBuilder) {
   if (!mDef) return false;
 
-  // Get element dimensions in device pixels
   nsRect bounds = GetBounds(aDisplayListBuilder, nullptr);
   nsPresContext* pc = mFrame->PresContext();
   int32_t appUnitsPerDevPixel = pc->AppUnitsPerDevPixel();
@@ -43,15 +128,15 @@ bool nsDisplayPelt::CreateWebRenderCommands(
 
   uint32_t width = static_cast<uint32_t>(devRect.Width());
   uint32_t height = static_cast<uint32_t>(devRect.Height());
-
   if (width == 0 || height == 0) return false;
 
-  // LEPUS: Placeholder — push a solid color rect until Vello FFI is linked.
-  // When Rust crates are vendored, this will call vello_pelt_render() and
-  // push the resulting texture as a WebRender image display item.
+  // Extract the dominant fill color from the SVG source.
+  // This is a temporary visual until Vello renders the full SVG.
+  gfx::DeviceColor color = ExtractFillColor(mDef->SvgSource());
+
   wr::LayoutRect wrBounds = wr::ToLayoutRect(devRect);
   aBuilder.PushRect(wrBounds, wrBounds, false, false, false,
-                    wr::ToColorF(gfx::DeviceColor(0.1f, 0.16f, 0.1f, 0.78f)));
+                    wr::ToColorF(color));
 
   return true;
 }
@@ -64,43 +149,16 @@ nsAutoCString nsDisplayPelt::GetCurrentState() const {
 
   dom::Element* el = content->AsElement();
 
-  // Check disabled first (takes priority)
   if (el->HasAttr(nsGkAtoms::disabled)) {
-    nsAutoString peltDisabled;
-    if (el->GetAttr(nsGkAtoms::peltDisabled, peltDisabled) &&
-        !peltDisabled.IsEmpty()) {
-      return NS_ConvertUTF16toUTF8(peltDisabled);
-    }
     return nsAutoCString("disabled");
   }
-
-  // Check active (:active pseudo-state)
   if (el->State().HasState(dom::ElementState::ACTIVE)) {
-    nsAutoString peltActive;
-    if (el->GetAttr(nsGkAtoms::peltActive, peltActive) &&
-        !peltActive.IsEmpty()) {
-      return NS_ConvertUTF16toUTF8(peltActive);
-    }
     return nsAutoCString("active");
   }
-
-  // Check hover
   if (el->State().HasState(dom::ElementState::HOVER)) {
-    nsAutoString peltHover;
-    if (el->GetAttr(nsGkAtoms::peltHover, peltHover) &&
-        !peltHover.IsEmpty()) {
-      return NS_ConvertUTF16toUTF8(peltHover);
-    }
     return nsAutoCString("hover");
   }
-
-  // Check focus
   if (el->State().HasState(dom::ElementState::FOCUS)) {
-    nsAutoString peltFocus;
-    if (el->GetAttr(nsGkAtoms::peltFocus, peltFocus) &&
-        !peltFocus.IsEmpty()) {
-      return NS_ConvertUTF16toUTF8(peltFocus);
-    }
     return nsAutoCString("focus");
   }
 
