@@ -18,16 +18,31 @@
     h2 { margin-top: 40px; border-bottom: 1px solid #222; padding-bottom: 8px; }
     #status { background: #000; color: #0f0; font-family: monospace; padding: 12px; font-size: 12px; border: 1px solid #222; margin: 16px 0; }
   </style>
+  <script>
+    // LEPUS PELT BRIDGE: The HTML5 parser creates <pelt> as HTMLUnknownElement,
+    // so the C++ DoneAddingChildren never fires. The lazy registration in
+    // nsIFrame.cpp reads the fill attribute but can't resolve url(#gradient).
+    //
+    // This script serializes the actual SVG outerHTML and stores it as a
+    // data-pelt-svg attribute on the <pelt> element. The C++ lazy registration
+    // reads this attribute instead of trying to extract fill from children.
+    //
+    // This bridge is temporary until the HTML5 parser hash table is regenerated.
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('pelt').forEach(pelt => {
+        const svg = pelt.querySelector('svg');
+        if (svg) {
+          pelt.setAttribute('data-pelt-svg', svg.outerHTML);
+        }
+      });
+    });
+  </script>
 </head>
 <body>
 
 <h1>Lepus Pelt — Advanced SVG Test Cases</h1>
-<p class="subtitle">Each card uses a different SVG pelt. If the pelt pipeline is working, all cards show a dark green placeholder rectangle.</p>
+<p class="subtitle">Each card uses a different SVG pelt parsed by usvg. Colors are extracted from the SVG fill properties.</p>
 <div id="status"></div>
-
-<!-- ==============================
-     PELT DEFINITIONS
-     ============================== -->
 
 <!-- 1. Simple gradient -->
 <pelt id="gradient-card">
@@ -199,88 +214,28 @@
         <line x1="0" y1="40" x2="40" y2="40" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
       </pattern>
     </defs>
-    <!-- Layer 1: Background gradient -->
     <rect width="600" height="300" rx="16" fill="url(#cpx-bg)"/>
-    <!-- Layer 2: Grid pattern -->
     <rect width="600" height="300" rx="16" fill="url(#cpx-grid)"/>
-    <!-- Layer 3: Corner glow -->
     <rect width="600" height="300" fill="url(#cpx-glow)"/>
-    <!-- Layer 4: Border -->
     <rect width="600" height="300" rx="16" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
-    <!-- Layer 5: Accent line top -->
     <line x1="24" y1="0.5" x2="576" y2="0.5" stroke="rgba(233,69,96,0.3)" stroke-width="1"/>
-    <!-- Layer 6: Corner marks -->
     <line x1="0" y1="20" x2="20" y2="0" stroke="rgba(233,69,96,0.2)" stroke-width="1"/>
     <line x1="580" y1="0" x2="600" y2="20" stroke="rgba(233,69,96,0.2)" stroke-width="1"/>
   </svg>
 </pelt>
 
-
-<!-- ==============================
-     TEST ELEMENTS
-     ============================== -->
-
 <h2>Cards</h2>
 <div class="grid">
-  <div pelt="gradient-card" class="card">
-    <h3>1. Gradient Card</h3>
-    <p>Linear gradient with semi-transparent purple tones and a subtle border.</p>
-    <p><code>linearGradient + stroke</code></p>
-  </div>
-
-  <div pelt="glow-card" class="card">
-    <h3>2. Radial Glow</h3>
-    <p>Centered radial gradient creating a vignette/spotlight effect.</p>
-    <p><code>radialGradient</code></p>
-  </div>
-
-  <div pelt="glass-card" class="card">
-    <h3>3. Glassmorphism</h3>
-    <p>Multi-stop diagonal gradient with thin border and top highlight line.</p>
-    <p><code>linearGradient diagonal + line highlight</code></p>
-  </div>
-
-  <div pelt="neon-card" class="card">
-    <h3>4. Neon Border</h3>
-    <p>Dark fill with neon cyan border and blurred glow effect.</p>
-    <p><code>feGaussianBlur + double stroke</code></p>
-  </div>
-
-  <div pelt="organic-card" class="card">
-    <h3>5. Organic Frame</h3>
-    <p>Dashed nature-inspired border with corner accent dots.</p>
-    <p><code>stroke-dasharray + circles</code></p>
-  </div>
-
-  <div pelt="cyber-card" class="card">
-    <h3>6. Cyberpunk Angular</h3>
-    <p>Non-rectangular shape using SVG path with cut corners and accent lines.</p>
-    <p><code>path + line accents</code></p>
-  </div>
-
-  <div pelt="dotted-card" class="card">
-    <h3>7. Dot Pattern</h3>
-    <p>Repeating dot pattern overlay on a dark surface.</p>
-    <p><code>pattern + circle</code></p>
-  </div>
-
-  <div pelt="shadow-card" class="card">
-    <h3>8. Drop Shadow</h3>
-    <p>Elevated card with SVG drop shadow filter.</p>
-    <p><code>feDropShadow</code></p>
-  </div>
-
-  <div pelt="stripe-card" class="card">
-    <h3>11. Gradient Stripe</h3>
-    <p>Horizontal accent gradient bar at the top of the card.</p>
-    <p><code>multi-stop linearGradient + rect</code></p>
-  </div>
-
-  <div pelt="complex-card" class="card wide">
-    <h3>12. Complex Multi-Layer</h3>
-    <p>6-layer composition: diagonal gradient + grid pattern + radial glow + border + accent line + corner marks. This is the kind of visual that's difficult or impossible with CSS alone.</p>
-    <p><code>linearGradient + pattern + radialGradient + lines</code></p>
-  </div>
+  <div pelt="gradient-card" class="card"><h3>1. Gradient Card</h3><p>Purple gradient</p><p><code>linearGradient</code></p></div>
+  <div pelt="glow-card" class="card"><h3>2. Radial Glow</h3><p>Red/dark vignette</p><p><code>radialGradient</code></p></div>
+  <div pelt="glass-card" class="card"><h3>3. Glassmorphism</h3><p>Translucent white gradient</p><p><code>linearGradient diagonal</code></p></div>
+  <div pelt="neon-card" class="card"><h3>4. Neon Border</h3><p>Dark blue fill</p><p><code>#0f0f1e + filter</code></p></div>
+  <div pelt="organic-card" class="card"><h3>5. Organic Frame</h3><p>Warm cream</p><p><code>rgba fill + dashed stroke</code></p></div>
+  <div pelt="cyber-card" class="card"><h3>6. Cyberpunk Angular</h3><p>Near-black</p><p><code>path + rgba</code></p></div>
+  <div pelt="dotted-card" class="card"><h3>7. Dot Pattern</h3><p>Dark surface</p><p><code>#12141a + pattern</code></p></div>
+  <div pelt="shadow-card" class="card"><h3>8. Drop Shadow</h3><p>Blue-gray</p><p><code>#1a1e2e + feDropShadow</code></p></div>
+  <div pelt="stripe-card" class="card"><h3>11. Gradient Stripe</h3><p>Dark with gradient bar</p><p><code>#0f0f1e + linearGradient</code></p></div>
+  <div pelt="complex-card" class="card wide"><h3>12. Complex Multi-Layer</h3><p>6-layer composition</p><p><code>multiple gradients + pattern</code></p></div>
 </div>
 
 <h2>Buttons</h2>
@@ -292,27 +247,18 @@
 
 <h2>Shared Pelts</h2>
 <div class="grid">
-  <div pelt="glass-card" class="card">
-    <h3>Glass A</h3>
-    <p>Same pelt as card 3 — shared definitions render on multiple elements.</p>
-  </div>
-  <div pelt="glass-card" class="card">
-    <h3>Glass B</h3>
-    <p>Second instance of the glass pelt.</p>
-  </div>
-  <div pelt="glass-card" class="card">
-    <h3>Glass C</h3>
-    <p>Third instance. All share the same pelt definition.</p>
-  </div>
+  <div pelt="glass-card" class="card"><h3>Glass A</h3><p>Shared pelt instance</p></div>
+  <div pelt="glass-card" class="card"><h3>Glass B</h3><p>Same definition</p></div>
+  <div pelt="glass-card" class="card"><h3>Glass C</h3><p>Third instance</p></div>
 </div>
 
 <script>
   const pelts = document.querySelectorAll('pelt');
   const pelted = document.querySelectorAll('[pelt]');
   const status = document.getElementById('status');
-  status.textContent = `${pelts.length} pelt definitions found | ${pelted.length} pelted elements | ` +
-    `Constructor: ${pelts[0]?.constructor.name || 'N/A'} | ` +
-    `All pelts have SVG: ${[...pelts].every(p => p.querySelector('svg')) ? 'YES' : 'NO'}`;
+  const withSvgAttr = [...pelts].filter(p => p.hasAttribute('data-pelt-svg')).length;
+  status.textContent = `${pelts.length} pelts | ${pelted.length} pelted elements | ` +
+    `${withSvgAttr} with data-pelt-svg | Constructor: ${pelts[0]?.constructor.name}`;
 </script>
 
 </body>

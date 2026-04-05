@@ -2694,36 +2694,39 @@ void nsIFrame::DisplayBorderBackgroundOutline(nsDisplayListBuilder* aBuilder,
         mozilla::dom::Document* doc = mContent->GetComposedDoc();
         mozilla::dom::Element* peltEl = doc->GetElementById(peltId);
         if (peltEl && peltEl->NodeInfo()->NameAtom() == nsGkAtoms::pelt) {
-          // Extract the first fill color from SVG children for
-          // placeholder rendering. Full SVG serialization happens
-          // outside the paint path (nsDOMSerializer is not paint-safe).
+          // Try data-pelt-svg attribute first (set by JS bridge script).
+          // This contains the full serialized SVG outerHTML, allowing
+          // usvg to resolve gradients, patterns, and all references.
           nsAutoString svgSource;
-          nsAutoString fillColor;
-          for (nsIContent* child = peltEl->GetFirstChild(); child;
-               child = child->GetNextSibling()) {
-            if (child->IsSVGElement() && child->IsElement()) {
-              // Walk SVG children to find a fill attribute
-              for (nsIContent* svgChild = child->GetFirstChild();
-                   svgChild; svgChild = svgChild->GetNextSibling()) {
-                if (svgChild->IsElement()) {
-                  svgChild->AsElement()->GetAttr(nsGkAtoms::fill, fillColor);
-                  if (!fillColor.IsEmpty()) break;
+          peltEl->GetAttribute(u"data-pelt-svg"_ns, svgSource);
+
+          // Fallback: build minimal SVG from first fill attribute
+          if (svgSource.IsEmpty()) {
+            nsAutoString fillColor;
+            for (nsIContent* child = peltEl->GetFirstChild(); child;
+                 child = child->GetNextSibling()) {
+              if (child->IsSVGElement() && child->IsElement()) {
+                for (nsIContent* svgChild = child->GetFirstChild();
+                     svgChild; svgChild = svgChild->GetNextSibling()) {
+                  if (svgChild->IsElement()) {
+                    svgChild->AsElement()->GetAttr(nsGkAtoms::fill, fillColor);
+                    if (!fillColor.IsEmpty()) break;
+                  }
                 }
+                if (fillColor.IsEmpty()) {
+                  child->AsElement()->GetAttr(nsGkAtoms::fill, fillColor);
+                }
+                if (!fillColor.IsEmpty()) {
+                  svgSource.AssignLiteral(
+                      u"<svg xmlns='http://www.w3.org/2000/svg'>"
+                      u"<rect width='1' height='1' fill='");
+                  svgSource.Append(fillColor);
+                  svgSource.AppendLiteral(u"'/></svg>");
+                }
+                break;
               }
-              if (fillColor.IsEmpty()) {
-                child->AsElement()->GetAttr(nsGkAtoms::fill, fillColor);
-              }
-              // Store fill color as a minimal SVG for the PeltDefinition
-              if (!fillColor.IsEmpty()) {
-                svgSource.AssignLiteral(u"<svg xmlns='http://www.w3.org/2000/svg'>"
-                    u"<rect width='1' height='1' fill='");
-                svgSource.Append(fillColor);
-                svgSource.AppendLiteral(u"'/></svg>");
-              }
-              break;
             }
           }
-          // Fallback if no fill found
           if (svgSource.IsEmpty()) {
             svgSource.AssignLiteral(
                 u"<svg xmlns='http://www.w3.org/2000/svg'>"
