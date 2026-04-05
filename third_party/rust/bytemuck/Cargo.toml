@@ -12,10 +12,14 @@
 [package]
 edition = "2018"
 name = "bytemuck"
-version = "1.22.0"
+version = "1.25.0"
 authors = ["Lokathor <zefria@gmail.com>"]
 build = false
-exclude = ["/pedantic.bat"]
+exclude = [
+    "/pedantic.bat",
+    "derive/",
+    "contiguous_bitset/",
+]
 autolib = false
 autobins = false
 autoexamples = false
@@ -59,6 +63,7 @@ const_zeroed = []
 derive = ["bytemuck_derive"]
 extern_crate_alloc = []
 extern_crate_std = ["extern_crate_alloc"]
+impl_core_error = []
 latest_stable_rust = [
     "aarch64_simd",
     "avx512_simd",
@@ -66,6 +71,7 @@ latest_stable_rust = [
     "alloc_uninit",
     "const_zeroed",
     "derive",
+    "impl_core_error",
     "min_const_generics",
     "must_cast",
     "must_cast_extra",
@@ -75,13 +81,14 @@ latest_stable_rust = [
     "wasm_simd",
     "zeroable_atomics",
     "zeroable_maybe_uninit",
+    "zeroable_unwind_fn",
 ]
 min_const_generics = []
 must_cast = []
 must_cast_extra = ["must_cast"]
 nightly_docs = []
 nightly_float = []
-nightly_portable_simd = []
+nightly_portable_simd = ["rustversion"]
 nightly_stdsimd = []
 pod_saturating = []
 track_caller = []
@@ -90,6 +97,7 @@ unsound_ptr_pod_impl = []
 wasm_simd = []
 zeroable_atomics = []
 zeroable_maybe_uninit = []
+zeroable_unwind_fn = []
 
 [lib]
 name = "bytemuck"
@@ -132,7 +140,11 @@ name = "wrapper_forgets"
 path = "tests/wrapper_forgets.rs"
 
 [dependencies.bytemuck_derive]
-version = "1.4.1"
+version = "1.10.2"
+optional = true
+
+[dependencies.rustversion]
+version = "1.0.22"
 optional = true
 
 [lints.rust.unexpected_cfgs]

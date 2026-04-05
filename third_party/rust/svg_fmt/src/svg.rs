@@ -1,4 +1,6 @@
-use std::fmt;
+use alloc::string::String;
+use alloc::vec::Vec;
+use core::fmt;
 
 /// `rgb({r},{g},{b})`
 #[derive(Copy, Clone, PartialEq)]
@@ -8,18 +10,36 @@ pub struct Color {
     pub b: u8,
 }
 
+impl Default for Color {
+    fn default() -> Self {
+        black()
+    }
+}
+
 impl fmt::Display for Color {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "rgb({},{},{})", self.r, self.g, self.b)
     }
 }
 
-pub fn rgb(r: u8, g: u8, b: u8) -> Color { Color { r, g, b } }
-pub fn black() -> Color { rgb(0, 0, 0) }
-pub fn white() -> Color { rgb(255, 255, 255) }
-pub fn red() -> Color { rgb(255, 0, 0) }
-pub fn green() -> Color { rgb(0, 255, 0) }
-pub fn blue() -> Color { rgb(0, 0, 255) }
+pub fn rgb(r: u8, g: u8, b: u8) -> Color {
+    Color { r, g, b }
+}
+pub fn black() -> Color {
+    rgb(0, 0, 0)
+}
+pub fn white() -> Color {
+    rgb(255, 255, 255)
+}
+pub fn red() -> Color {
+    rgb(255, 0, 0)
+}
+pub fn green() -> Color {
+    rgb(0, 255, 0)
+}
+pub fn blue() -> Color {
+    rgb(0, 0, 255)
+}
 
 /// `fill:{self}`
 #[derive(Copy, Clone, PartialEq)]
@@ -28,11 +48,23 @@ pub enum Fill {
     None,
 }
 
+impl Default for Fill {
+    fn default() -> Self {
+        Fill::None
+    }
+}
+
 /// `stroke:{self}`
 #[derive(Copy, Clone, PartialEq)]
 pub enum Stroke {
     Color(Color, f32),
     None,
+}
+
+impl Default for Stroke {
+    fn default() -> Self {
+        Stroke::Color(black(), 1.0)
+    }
 }
 
 /// `fill:{fill};stroke:{stroke};fill-opacity:{opacity};`
@@ -46,22 +78,41 @@ pub struct Style {
 
 impl fmt::Display for Style {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{};{};fill-opacity:{};stroke-opacity:{};",
-            self.fill,
-            self.stroke,
-            self.opacity,
-            self.stroke_opacity,
+        write!(
+            f,
+            "{};{};fill-opacity:{};stroke-opacity:{};",
+            self.fill, self.stroke, self.opacity, self.stroke_opacity,
         )
     }
 }
 
-impl Style {
-    pub fn default() -> Self {
+impl Default for Style {
+    fn default() -> Self {
         Style {
             fill: Fill::Color(black()),
             stroke: Stroke::None,
             opacity: 1.0,
             stroke_opacity: 1.0,
+        }
+    }
+}
+
+impl From<Fill> for Style {
+    fn from(fill: Fill) -> Style {
+        Style {
+            fill,
+            stroke: Stroke::None,
+            .. Default::default()
+        }
+    }
+}
+
+impl From<Stroke> for Style {
+    fn from(stroke: Stroke) -> Style {
+        Style {
+            fill: Fill::None,
+            stroke,
+            .. Default::default()
         }
     }
 }
@@ -97,7 +148,7 @@ impl Into<Stroke> for Color {
 }
 
 /// `<rect x="{x}" y="{y}" width="{w}" height="{h}" ... />`,
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct Rectangle {
     pub x: f32,
     pub y: f32,
@@ -105,25 +156,34 @@ pub struct Rectangle {
     pub h: f32,
     pub style: Style,
     pub border_radius: f32,
+    pub comment: Option<Comment>,
 }
 
 pub fn rectangle(x: f32, y: f32, w: f32, h: f32) -> Rectangle {
     Rectangle {
-        x, y, w, h,
+        x,
+        y,
+        w,
+        h,
         style: Style::default(),
         border_radius: 0.0,
+        comment: None,
     }
 }
 
 impl Rectangle {
     pub fn fill<F>(mut self, fill: F) -> Self
-    where F: Into<Fill> {
+    where
+        F: Into<Fill>,
+    {
         self.style.fill = fill.into();
         self
     }
 
     pub fn stroke<S>(mut self, stroke: S) -> Self
-    where S: Into<Stroke> {
+    where
+        S: Into<Stroke>,
+    {
         self.style.stroke = stroke.into();
         self
     }
@@ -161,37 +221,52 @@ impl Rectangle {
         self.h += 2.0 * dy;
         self
     }
+
+    pub fn comment(mut self, text: &str) -> Self {
+        self.comment = Some(comment(text));
+        self
+    }
 }
 
 impl fmt::Display for Rectangle {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f,
-            r#"<rect x="{}" y="{}" width="{}" height="{}" ry="{}" style="{}" />""#,
-            self.x, self.y, self.w, self.h,
-            self.border_radius,
-            self.style,
-        )
+        write!(
+            f,
+            r#"<rect x="{}" y="{}" width="{}" height="{}" ry="{}" style="{}""#,
+            self.x, self.y, self.w, self.h, self.border_radius, self.style,
+        )?;
+        if let Some(comment) = &self.comment {
+            write!(f, r#">{}</rect>"#, comment)?;
+        } else {
+            write!(f, r#" />"#)?;
+        }
+        Ok(())
     }
 }
 
 /// `<circle cx="{x}" cy="{y}" r="{radius}" .../>`
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct Circle {
     pub x: f32,
     pub y: f32,
     pub radius: f32,
     pub style: Style,
+    pub comment: Option<Comment>,
 }
 
 impl Circle {
     pub fn fill<F>(mut self, fill: F) -> Self
-    where F: Into<Fill> {
+    where
+        F: Into<Fill>,
+    {
         self.style.fill = fill.into();
         self
     }
 
     pub fn stroke<S>(mut self, stroke: S) -> Self
-    where S: Into<Stroke> {
+    where
+        S: Into<Stroke>,
+    {
         self.style.stroke = stroke.into();
         self
     }
@@ -221,15 +296,26 @@ impl Circle {
         self.radius += by;
         self
     }
+
+    pub fn comment(mut self, text: &str) -> Self {
+        self.comment = Some(comment(text));
+        self
+    }
 }
 
 impl fmt::Display for Circle {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f,
-            r#"<circle cx="{}" cy="{}" r="{}" style="{}" />""#,
-            self.x, self.y, self.radius,
-            self.style,
-        )
+        write!(
+            f,
+            r#"<circle cx="{}" cy="{}" r="{}" style="{}""#,
+            self.x, self.y, self.radius, self.style,
+        )?;
+        if let Some(comment) = &self.comment {
+            write!(f, r#">{}</circle>"#, comment)?;
+        } else {
+            write!(f, r#" />"#)?;
+        }
+        Ok(())
     }
 }
 
@@ -239,6 +325,7 @@ pub struct Polygon {
     pub points: Vec<[f32; 2]>,
     pub closed: bool,
     pub style: Style,
+    pub comment: Option<Comment>,
 }
 
 impl fmt::Display for Polygon {
@@ -253,11 +340,17 @@ impl fmt::Display for Polygon {
                 write!(f, "Z")?;
             }
         }
-        write!(f, r#"" style="{}"/>"#, self.style)
+        write!(f, r#"" style="{}"#, self.style)?;
+        if let Some(comment) = &self.comment {
+            write!(f, r#">{}</path>"#, comment)?;
+        } else {
+            write!(f, r#" />"#)?;
+        }
+        Ok(())
     }
 }
 
-pub fn polygon<T: Copy + Into<[f32; 2]>>(pts: &[T]) ->  Polygon {
+pub fn polygon<T: Copy + Into<[f32; 2]>>(pts: &[T]) -> Polygon {
     let mut points = Vec::with_capacity(pts.len());
     for p in pts {
         points.push((*p).into());
@@ -266,6 +359,7 @@ pub fn polygon<T: Copy + Into<[f32; 2]>>(pts: &[T]) ->  Polygon {
         points,
         closed: true,
         style: Style::default(),
+        comment: None,
     }
 }
 
@@ -280,13 +374,17 @@ impl Polygon {
     }
 
     pub fn fill<F>(mut self, fill: F) -> Self
-    where F: Into<Fill> {
+    where
+        F: Into<Fill>,
+    {
         self.style.fill = fill.into();
         self
     }
 
     pub fn stroke<S>(mut self, stroke: S) -> Self
-    where S: Into<Stroke> {
+    where
+        S: Into<Stroke>,
+    {
         self.style.stroke = stroke.into();
         self
     }
@@ -305,10 +403,15 @@ impl Polygon {
         self.style = style;
         self
     }
+
+    pub fn comment(mut self, text: &str) -> Self {
+        self.comment = Some(comment(text));
+        self
+    }
 }
 
 /// `<path d="M {x1} {y1} L {x2} {y2}" ... />`
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct LineSegment {
     pub x1: f32,
     pub x2: f32,
@@ -316,25 +419,34 @@ pub struct LineSegment {
     pub y2: f32,
     pub color: Color,
     pub width: f32,
+    pub comment: Option<Comment>,
 }
 
 impl fmt::Display for LineSegment {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f,
-            r#"<path d="M {} {} L {} {}" style="stroke:{};stroke-width:{}"/>"#,
-            self.x1, self.y1,
-            self.x2, self.y2,
-            self.color,
-            self.width,
-        )
+        write!(
+            f,
+            r#"<path d="M {} {} L {} {}" style="stroke:{};stroke-width:{}""#,
+            self.x1, self.y1, self.x2, self.y2, self.color, self.width
+        )?;
+        if let Some(comment) = &self.comment {
+            write!(f, r#">{}</path>"#, comment)?;
+        } else {
+            write!(f, r#" />"#)?;
+        }
+        Ok(())
     }
 }
 
 pub fn line_segment(x1: f32, y1: f32, x2: f32, y2: f32) -> LineSegment {
     LineSegment {
-        x1, y1, x2, y2,
+        x1,
+        y1,
+        x2,
+        y2,
         color: black(),
         width: 1.0,
+        comment: None,
     }
 }
 
@@ -356,6 +468,11 @@ impl LineSegment {
         self.y2 += dy;
         self
     }
+
+    pub fn comment(mut self, text: &str) -> Self {
+        self.comment = Some(comment(text));
+        self
+    }
 }
 
 /// `<path d="..." />`
@@ -363,15 +480,34 @@ impl LineSegment {
 pub struct Path {
     pub ops: Vec<PathOp>,
     pub style: Style,
+    pub comment: Option<Comment>,
 }
 
 /// `M {} {} L {} {} ...`
 #[derive(Copy, Clone, PartialEq)]
 pub enum PathOp {
-    MoveTo { x: f32, y: f32 },
-    LineTo { x: f32, y: f32 },
-    QuadraticTo { ctrl_x: f32, ctrl_y: f32, x: f32, y: f32 },
-    CubicTo { ctrl1_x: f32, ctrl1_y: f32, ctrl2_x: f32, ctrl2_y: f32, x: f32, y: f32 },
+    MoveTo {
+        x: f32,
+        y: f32,
+    },
+    LineTo {
+        x: f32,
+        y: f32,
+    },
+    QuadraticTo {
+        ctrl_x: f32,
+        ctrl_y: f32,
+        x: f32,
+        y: f32,
+    },
+    CubicTo {
+        ctrl1_x: f32,
+        ctrl1_y: f32,
+        ctrl2_x: f32,
+        ctrl2_y: f32,
+        x: f32,
+        y: f32,
+    },
     Close,
 }
 impl fmt::Display for PathOp {
@@ -379,8 +515,24 @@ impl fmt::Display for PathOp {
         match *self {
             PathOp::MoveTo { x, y } => write!(f, "M {} {} ", x, y),
             PathOp::LineTo { x, y } => write!(f, "L {} {} ", x, y),
-            PathOp::QuadraticTo { ctrl_x, ctrl_y, x, y } => write!(f, "Q {} {} {} {} ", ctrl_x, ctrl_y, x, y),
-            PathOp::CubicTo { ctrl1_x, ctrl1_y, ctrl2_x, ctrl2_y, x, y } => write!(f, "C {} {} {} {} {} {} ", ctrl1_x, ctrl1_y, ctrl2_x, ctrl2_y, x, y),
+            PathOp::QuadraticTo {
+                ctrl_x,
+                ctrl_y,
+                x,
+                y,
+            } => write!(f, "Q {} {} {} {} ", ctrl_x, ctrl_y, x, y),
+            PathOp::CubicTo {
+                ctrl1_x,
+                ctrl1_y,
+                ctrl2_x,
+                ctrl2_y,
+                x,
+                y,
+            } => write!(
+                f,
+                "C {} {} {} {} {} {} ",
+                ctrl1_x, ctrl1_y, ctrl2_x, ctrl2_y, x, y
+            ),
             PathOp::Close => write!(f, "Z "),
         }
     }
@@ -392,7 +544,13 @@ impl fmt::Display for Path {
         for op in &self.ops {
             op.fmt(f)?;
         }
-        write!(f, r#"" style="{}" />"#, self.style)
+        write!(f, r#"" style="{}""#, self.style)?;
+        if let Some(comment) = &self.comment {
+            write!(f, r#">{}</path>"#, comment)?;
+        } else {
+            write!(f, r#"/>"#)?;
+        }
+        Ok(())
     }
 }
 
@@ -407,22 +565,33 @@ impl Path {
         self
     }
 
-    pub fn quadratic_bezier_to(
-        mut self,
-        ctrl_x: f32, ctrl_y: f32,
-        x: f32, y: f32,
-    ) -> Self {
-        self.ops.push(PathOp::QuadraticTo { ctrl_x, ctrl_y, x, y });
+    pub fn quadratic_bezier_to(mut self, ctrl_x: f32, ctrl_y: f32, x: f32, y: f32) -> Self {
+        self.ops.push(PathOp::QuadraticTo {
+            ctrl_x,
+            ctrl_y,
+            x,
+            y,
+        });
         self
     }
 
     pub fn cubic_bezier_to(
         mut self,
-        ctrl1_x: f32, ctrl1_y: f32,
-        ctrl2_x: f32, ctrl2_y: f32,
-        x: f32, y: f32,
+        ctrl1_x: f32,
+        ctrl1_y: f32,
+        ctrl2_x: f32,
+        ctrl2_y: f32,
+        x: f32,
+        y: f32,
     ) -> Self {
-        self.ops.push(PathOp::CubicTo { ctrl1_x, ctrl1_y, ctrl2_x, ctrl2_y, x, y });
+        self.ops.push(PathOp::CubicTo {
+            ctrl1_x,
+            ctrl1_y,
+            ctrl2_x,
+            ctrl2_y,
+            x,
+            y,
+        });
         self
     }
 
@@ -432,13 +601,17 @@ impl Path {
     }
 
     pub fn fill<F>(mut self, fill: F) -> Self
-    where F: Into<Fill> {
+    where
+        F: Into<Fill>,
+    {
         self.style.fill = fill.into();
         self
     }
 
     pub fn stroke<S>(mut self, stroke: S) -> Self
-    where S: Into<Stroke> {
+    where
+        S: Into<Stroke>,
+    {
         self.style.stroke = stroke.into();
         self
     }
@@ -463,39 +636,45 @@ pub fn path() -> Path {
     Path {
         ops: Vec::new(),
         style: Style::default(),
+        comment: None,
     }
 }
 
 /// `<text x="{x}" y="{y}" ... > {text} </text>`
 #[derive(Clone, PartialEq)]
 pub struct Text {
-    pub x: f32, pub y: f32,
+    pub x: f32,
+    pub y: f32,
     pub text: String,
     pub color: Color,
     pub align: Align,
     pub size: f32,
+    pub comment: Option<Comment>,
 }
 
 impl fmt::Display for Text {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f,
-            r#"<text x="{}" y="{}" style="font-size:{}px;fill:{};{}"> {} </text>"#,
-            self.x, self.y,
-            self.size,
-            self.color,
-            self.align,
-            self.text,
-        )
+        write!(
+            f,
+            r#"<text x="{}" y="{}" style="font-size:{}px;fill:{};{}">"#,
+            self.x, self.y, self.size, self.color, self.align,
+        )?;
+        if let Some(comment) = &self.comment {
+            write!(f, r#" {}"#, comment)?;
+        }
+        write!(f, r#" {} </text>"#, self.text)
     }
 }
 
 pub fn text<T: Into<String>>(x: f32, y: f32, txt: T) -> Text {
     Text {
-        x, y,
+        x,
+        y,
         text: txt.into(),
         color: black(),
         align: Align::Left,
         size: 10.0,
+        comment: None,
     }
 }
 
@@ -520,16 +699,20 @@ impl Text {
         self.y += dy;
         self
     }
+
+    pub fn comment(mut self, text: &str) -> Self {
+        self.comment = Some(comment(text));
+        self
+    }
 }
 
+#[derive(Clone, PartialEq)]
 pub struct Comment {
     pub text: String,
 }
 
 pub fn comment<T: Into<String>>(text: T) -> Comment {
-    Comment {
-        text: text.into()
-    }
+    Comment { text: text.into() }
 }
 
 impl fmt::Display for Comment {
@@ -541,7 +724,9 @@ impl fmt::Display for Comment {
 /// `text-align:{self}`
 #[derive(Copy, Clone, PartialEq)]
 pub enum Align {
-    Left, Right, Center
+    Left,
+    Right,
+    Center,
 }
 
 impl fmt::Display for Align {
@@ -563,14 +748,13 @@ pub struct BeginSvg {
 
 impl fmt::Display for BeginSvg {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f,
+        write!(
+            f,
             r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {} {}">"#,
-            self.w,
-            self.h,
+            self.w, self.h,
         )
     }
 }
-
 
 /// `</svg>`
 #[derive(Copy, Clone, PartialEq)]
@@ -608,17 +792,4 @@ impl fmt::Display for Indentation {
         }
         Ok(())
     }
-}
-
-#[test]
-fn foo() {
-    println!("{}", BeginSvg { w: 800.0, h: 600.0 });
-    println!("    {}",
-        rectangle(20.0, 50.0, 200.0, 100.0)
-            .fill(red())
-            .stroke(Stroke::Color(black(), 3.0))
-            .border_radius(5.0)
-    );
-    println!("    {}", text(25.0, 100.0, "Foo!").size(42.0).color(white()));
-    println!("{}", EndSvg);
 }

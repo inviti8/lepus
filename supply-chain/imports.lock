@@ -219,8 +219,8 @@ user-login = "nical"
 user-name = "Nicolas Silva"
 
 [[publisher.euclid]]
-version = "0.22.13"
-when = "2026-01-19"
+version = "0.22.14"
+when = "2026-03-18"
 user-id = 1281
 user-login = "nical"
 user-name = "Nicolas Silva"
@@ -1548,6 +1548,16 @@ criteria = "safe-to-deploy"
 delta = "3.5.0 -> 3.6.0"
 notes = "Dependency updates and new optimized trait implementations, but otherwise everything looks normal."
 
+[[audits.bytecode-alliance.audits.tinyvec_macros]]
+who = "Alex Crichton <alex@alexcrichton.com>"
+criteria = "safe-to-deploy"
+version = "0.1.0"
+notes = """
+This is a trivial crate which only contains a singular macro definition which is
+intended to multiplex across the internal representation of a tinyvec,
+presumably. This trivially doesn't contain anything bad.
+"""
+
 [[audits.bytecode-alliance.audits.tracing-subscriber]]
 who = "Pat Hickey <phickey@fastly.com>"
 criteria = "safe-to-deploy"
@@ -1935,6 +1945,12 @@ and there were no hits.
 '''
 aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
 
+[[audits.google.audits.color_quant]]
+who = "George Burgess IV <gbiv@google.com>"
+criteria = "safe-to-deploy"
+version = "1.1.0"
+aggregated-from = "https://chromium.googlesource.com/chromiumos/third_party/rust_crates/+/refs/heads/main/cargo-vet/audits.toml?format=TEXT"
+
 [[audits.google.audits.core-foundation-sys]]
 who = "Manish Goregaokar <manishearth@google.com>"
 criteria = "safe-to-deploy"
@@ -2011,6 +2027,38 @@ notes = """
 that the RNG here is not cryptographically secure.
 """
 aggregated-from = "https://chromium.googlesource.com/chromiumos/third_party/rust_crates/+/refs/heads/main/cargo-vet/audits.toml?format=TEXT"
+
+[[audits.google.audits.fdeflate]]
+who = "Lukasz Anforowicz <lukasza@chromium.org>"
+criteria = "safe-to-deploy"
+version = "0.3.4"
+notes = '''
+Grepped for `-i cipher`, `-i crypto`, `'\bfs\b'`, `'\bnet\b'`, `'\bunsafe\b'`
+and there were no hits.
+
+Note that some additional, internal notes about an older version of this crate
+can be found at go/image-crate-chromium-security-review.
+'''
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.fdeflate]]
+who = "Lukasz Anforowicz <lukasza@chromium.org>"
+criteria = "safe-to-deploy"
+delta = "0.3.4 -> 0.3.5"
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.fdeflate]]
+who = "Dustin J. Mitchell <djmitche@chromium.org>"
+criteria = "safe-to-deploy"
+delta = "0.3.5 -> 0.3.6"
+notes = "No unsafe, no crypto, mysterious tables replaced with const expressions"
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.fdeflate]]
+who = "Lukasz Anforowicz <lukasza@chromium.org>"
+criteria = "safe-to-deploy"
+delta = "0.3.6 -> 0.3.7"
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
 
 [[audits.google.audits.flate2]]
 who = "Lukasz Anforowicz <lukasza@chromium.org>"
@@ -2528,6 +2576,39 @@ criteria = "safe-to-deploy"
 delta = "0.2.9 -> 0.2.13"
 notes = "Audited at https://fxrev.dev/946396"
 aggregated-from = "https://fuchsia.googlesource.com/fuchsia/+/refs/heads/main/third_party/rust_crates/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.png]]
+who = "Lukasz Anforowicz <lukasza@chromium.org>"
+criteria = "safe-to-deploy"
+version = "0.17.13"
+notes = '''
+Grepped for `-i cipher`, `-i crypto`, `'\bfs\b'`, `'\bnet\b'`, `'\bunsafe\b'`
+and there were no hits except for reasonable, client-controlled usage of
+`std::fs::File` in tests in `src/encoder.rs`, tests in `src/decoder/stream.rs`,
+and in some example code.
+
+Note that some additional, internal notes about an older version of this crate
+can be found at go/image-crate-chromium-security-review.
+'''
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.png]]
+who = "Lukasz Anforowicz <lukasza@chromium.org>"
+criteria = "safe-to-deploy"
+delta = "0.17.13 -> 0.17.14"
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.png]]
+who = "Lukasz Anforowicz <lukasza@chromium.org>"
+criteria = "safe-to-deploy"
+delta = "0.17.14 -> 0.17.15"
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
+
+[[audits.google.audits.png]]
+who = "Adrian Taylor <adetaylor@chromium.org>"
+criteria = "safe-to-deploy"
+delta = "0.17.15 -> 0.17.16"
+aggregated-from = "https://chromium.googlesource.com/chromium/src/+/main/third_party/rust/chromium_crates_io/supply-chain/audits.toml?format=TEXT"
 
 [[audits.google.audits.potential_utf]]
 who = "Manish Goregaokar <manishearth@google.com>"

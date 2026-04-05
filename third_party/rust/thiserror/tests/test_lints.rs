@@ -46,6 +46,17 @@ fn test_needless_lifetimes() {
 }
 
 #[test]
+fn test_forbid_needless_lifetimes() {
+    #![forbid(clippy::needless_lifetimes)]
+
+    #[derive(Error, Debug)]
+    #[error("...")]
+    pub struct MyError(#[from] std::io::Error);
+
+    let _: MyError;
+}
+
+#[test]
 fn test_deprecated() {
     #![deny(deprecated)]
 
@@ -93,4 +104,6 @@ fn test_deprecated() {
     let _ = DeprecatedEnum::Variant;
     #[allow(deprecated)]
     let _ = DeprecatedVariant::Variant;
+    #[allow(deprecated)]
+    let _ = DeprecatedFrom::Variant(DeprecatedStruct);
 }

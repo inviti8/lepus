@@ -45,4 +45,4 @@ path = "src/lib.rs"
 
 [target.'cfg(target_vendor = "apple")'.dependencies.wgpu-hal]
 version = "28.0.0"
-path = "../../../wgpu-hal"
+path = '..\..\..\wgpu-hal'

@@ -1,5 +1,29 @@
 # `bytemuck` changelog
 
+## 1.25
+
+* [Remove extern "stdcall" fn ptr impls on non-x86-32 windows.](https://github.com/Lokathor/bytemuck/pull/333)
+* [Fix nightly_portable_simd after LaneCount removal.](https://github.com/Lokathor/bytemuck/pull/344)
+
+## 1.24
+
+* [use new stable avx512 types from rust 1.89](https://github.com/Lokathor/bytemuck/pull/322)
+* [impl AnyBitPattern for [MaybeUninit<T: AnyBitPattern>; N]](https://github.com/Lokathor/bytemuck/pull/317)
+* bump `derive` minimum version.
+
+## 1.23.2
+
+* bump `derive` minimum version.
+
+## 1.23.1
+
+* Added a windows-only `ZeroableInOption` impl for "stdcall" functions.
+
+## 1.23
+
+* `impl_core_error` crate feature adds `core::error::Error` impl.
+* More `ZeroableInOption` impls.
+
 ## 1.22
 
 * Add the `pod_saturating` feature, which adds `Pod` impls for `Saturating<T>`

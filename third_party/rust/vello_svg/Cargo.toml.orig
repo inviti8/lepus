@@ -1,0 +1,134 @@
+[workspace]
+resolver = "2"
+members = ["examples/with_winit", "examples/run_wasm", "examples/scenes"]
+
+[workspace.package]
+edition = "2024"
+# When updating, also update the "Version compatibility" table in the README
+version = "0.9.0"
+license = "Apache-2.0 OR MIT"
+repository = "https://github.com/linebender/vello_svg"
+# Keep in sync with RUST_MIN_VER in .github/workflows/ci.yml, with the relevant README.md files
+# and with the MSRV in the `Unreleased` section of CHANGELOG.md.
+rust-version = "1.88"
+
+[workspace.lints]
+# LINEBENDER LINT SET - Cargo.toml - v2
+# See https://linebender.org/wiki/canonical-lints/
+rust.keyword_idents_2024 = "forbid"
+rust.non_ascii_idents = "forbid"
+rust.non_local_definitions = "forbid"
+rust.unsafe_op_in_unsafe_fn = "forbid"
+
+rust.elided_lifetimes_in_paths = "warn"
+rust.let_underscore_drop = "warn"
+rust.missing_debug_implementations = "warn"
+rust.missing_docs = "warn"
+rust.single_use_lifetimes = "warn"
+rust.trivial_numeric_casts = "warn"
+rust.unexpected_cfgs = "warn"
+rust.unit_bindings = "warn"
+rust.unnameable_types = "warn"
+rust.unreachable_pub = "warn"
+rust.unused_import_braces = "warn"
+rust.unused_lifetimes = "warn"
+rust.unused_macro_rules = "warn"
+rust.unused_qualifications = "warn"
+rust.variant_size_differences = "warn"
+
+clippy.allow_attributes = "warn"
+clippy.allow_attributes_without_reason = "warn"
+clippy.cast_possible_truncation = "warn"
+clippy.collection_is_never_read = "warn"
+clippy.dbg_macro = "warn"
+clippy.debug_assert_with_mut_call = "warn"
+clippy.doc_markdown = "warn"
+clippy.exhaustive_enums = "warn"
+clippy.fn_to_numeric_cast_any = "warn" # Can't be forbid due to 'scenes' requiring an exception.
+clippy.infinite_loop = "warn"
+clippy.large_include_file = "warn"
+clippy.large_stack_arrays = "warn"
+clippy.match_same_arms = "warn"
+clippy.mismatching_type_param_order = "warn"
+clippy.missing_assert_message = "warn"
+clippy.missing_errors_doc = "warn"
+clippy.missing_fields_in_debug = "warn"
+clippy.missing_panics_doc = "warn"
+clippy.partial_pub_fields = "warn"
+clippy.return_self_not_must_use = "warn"
+clippy.same_functions_in_if_condition = "warn"
+clippy.semicolon_if_nothing_returned = "warn"
+clippy.shadow_unrelated = "warn"
+clippy.should_panic_without_expect = "warn"
+clippy.todo = "warn"
+clippy.trivially_copy_pass_by_ref = "warn"
+clippy.unseparated_literal_suffix = "warn"
+clippy.use_self = "warn"
+clippy.wildcard_imports = "warn"
+
+clippy.cargo_common_metadata = "warn"
+clippy.negative_feature_names = "warn"
+clippy.redundant_feature_names = "warn"
+clippy.wildcard_dependencies = "warn"
+# END LINEBENDER LINT SET
+
+[workspace.dependencies]
+# NOTE: Make sure to keep this in sync with the version badge in README.md
+vello = { version = "0.7.0", default-features = false }
+
+[package]
+name = "vello_svg"
+description = "An SVG integration for vello."
+categories = ["rendering", "graphics"]
+keywords = ["2d", "vector-graphics", "vello", "svg"]
+version.workspace = true
+rust-version.workspace = true
+license.workspace = true
+edition.workspace = true
+repository.workspace = true
+
+exclude = [
+    ".github",
+    ".clippy.toml",
+    ".gitignore",
+    ".typos.toml",
+    ".cargo",
+    # The examples folder contains our example packages, not any direct examples for this package
+    "examples/",
+    # Given that this has .gitkeep, I assume that the plan is to use it to store screenshots?
+    "tests",
+    "rustfmt.toml",
+]
+
+[package.metadata.docs.rs]
+all-features = true
+# There are no platform specific docs.
+default-target = "x86_64-unknown-linux-gnu"
+targets = []
+
+[lints]
+workspace = true
+
+[dependencies]
+vello = { workspace = true }
+thiserror = "2.0.18"
+usvg = "0.46.0"
+image = { version = "0.25.9", default-features = false, features = [
+    "webp",
+    "png",
+    "jpeg",
+    "gif",
+], optional = true }
+
+[target.'cfg(target_arch = "wasm32")'.dev-dependencies]
+wasm-bindgen-test = "0.3.58"
+
+[features]
+default = ["image_format_png", "image_format_gif", "image_format_jpeg", "image_format_webp"]
+# Enables the wgpu feature on vello, which is disabled by default
+wgpu = ["vello/wgpu"]
+image = ["dep:image"]
+image_format_png = ["image", "image/png"]
+image_format_jpeg = ["image", "image/jpeg"]
+image_format_gif = ["image", "image/gif"]
+image_format_webp = ["image", "image/webp"]

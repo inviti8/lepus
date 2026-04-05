@@ -5,16 +5,10 @@
 #![allow(clippy::uninlined_format_args)]
 #![allow(clippy::result_unit_err)]
 #![allow(clippy::type_complexity)]
+#![allow(clippy::manual_is_multiple_of)]
 #![cfg_attr(feature = "nightly_docs", feature(doc_cfg))]
 #![cfg_attr(feature = "nightly_portable_simd", feature(portable_simd))]
 #![cfg_attr(feature = "nightly_float", feature(f16, f128))]
-#![cfg_attr(
-  all(
-    feature = "nightly_stdsimd",
-    any(target_arch = "x86_64", target_arch = "x86")
-  ),
-  feature(stdarch_x86_avx512)
-)]
 
 //! This crate gives small utilities for casting between plain data types.
 //!
@@ -229,6 +223,13 @@ mod offset_of;
 mod transparent;
 pub use transparent::*;
 
+// This module is just an implementation detail for the derive macros. It needs
+// to be public to be usable from the macros, but it shouldn't be considered
+// part of bytemuck's public API.
+#[cfg(feature = "derive")]
+#[doc(hidden)]
+pub mod derive;
+
 #[cfg(feature = "derive")]
 #[cfg_attr(feature = "nightly_docs", doc(cfg(feature = "derive")))]
 pub use bytemuck_derive::{
@@ -266,6 +267,10 @@ impl core::fmt::Display for PodCastError {
 #[cfg(feature = "extern_crate_std")]
 #[cfg_attr(feature = "nightly_docs", doc(cfg(feature = "extern_crate_std")))]
 impl std::error::Error for PodCastError {}
+
+// Rust 1.81+
+#[cfg(all(feature = "impl_core_error", not(feature = "extern_crate_std")))]
+impl core::error::Error for PodCastError {}
 
 /// Re-interprets `&T` as `&[u8]`.
 ///
@@ -558,7 +563,7 @@ pub fn fill_zeroes<T: Zeroable>(slice: &mut [T]) {
     // case one of the intermediate drops does a panic.
     slice.iter_mut().for_each(write_zeroes);
   } else {
-    // Otherwise we can be really fast and just fill everthing with zeros.
+    // Otherwise we can be really fast and just fill everything with zeros.
     let len = slice.len();
     unsafe { core::ptr::write_bytes(slice.as_mut_ptr(), 0u8, len) }
   }

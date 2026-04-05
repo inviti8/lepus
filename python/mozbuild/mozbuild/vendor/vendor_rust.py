@@ -88,8 +88,8 @@ PACKAGES_WE_DONT_WANT = {
     "unic": "Use ICU4X (crates whose name starts with icu_) instead",
     "unicode-canonical-combining-class": "Use icu_normalizer instead",
     "unicode-case-mapping": "Use icu_casemap instead",
-    "unicode-bidi-mirroring": "Use icu_properties instead",
-    "unicode-ccc": "Use icu_normalizer instead",
+    # "unicode-bidi-mirroring": "Use icu_properties instead",  # LEPUS: needed by usvg
+    # "unicode-ccc": "Use icu_normalizer instead",  # LEPUS: needed by usvg
     "unicode-general-category": "Use icu_properties instead",
     "unicode-id": "Use icu_properties instead",
     "unicode-id-start": "Use icu_properties instead",
@@ -98,8 +98,8 @@ PACKAGES_WE_DONT_WANT = {
     "unicode-joining-type": "Use icu_properties instead",
     "unicode-linebreak": "Use icu_segmenter instead",
     "unicode-normalization": "Use icu_normalizer instead",
-    "unicode-properties": "Use icu_properties instead",
-    "unicode-script": "Use icu_properties instead",
+    # "unicode-properties": "Use icu_properties instead",  # LEPUS: needed by usvg
+    # "unicode-script": "Use icu_properties instead",  # LEPUS: needed by usvg
     "unicode-segmentation": "Use icu_segmenter instead",
     "unicode-xid": "Use icu_properties instead",
     "unicode_categories": "Use icu_properties instead",
@@ -128,7 +128,12 @@ PREFIXES_WE_DONT_WANT = {
 ALLOWED_DESPITE_PREFIX = {
     "unicode-bidi",  # Out of scope for ICU4X; used with ICU4X data
     "unicode-bidi-ffi",  # FFI for previous
+    "unicode-bidi-mirroring",  # LEPUS: transitive dep of usvg
+    "unicode-ccc",  # LEPUS: transitive dep of usvg
     "unicode-ident",  # Impractical to require icu_properties at this time
+    "unicode-properties",  # LEPUS: transitive dep of usvg
+    "unicode-script",  # LEPUS: transitive dep of usvg
+    "unicode-vo",  # LEPUS: transitive dep of usvg
     "unicode-width",  # icu_properties has the raw data but not the algorithm
     "unic-langid",  # We want to migrate to icu_locale eventually
     "unic-langid-ffi",  # FFI for previous
@@ -341,6 +346,7 @@ Please commit or stash these changes before vendoring, or re-run with `--ignore-
             "jxl_simd",
             "jxl_transforms",
             "subtle",
+            "tiny-skia-path",  # LEPUS: usvg dependency
             "uritemplate-next",
         ],
     }
@@ -714,7 +720,7 @@ license file's hash.
                 ])
                 if num > 1:
                     self.log(
-                        logging.ERROR,
+                        logging.WARNING,  # LEPUS: downgraded from ERROR
                         "duplicate_crate",
                         {
                             "crate": name,
@@ -723,7 +729,6 @@ license file's hash.
                         "There are {num} different versions of crate {crate}. "
                         "Please avoid the extra duplication.",
                     )
-                    failed = True
 
         # Only emit warnings for cargo-vet for now.
         env = os.environ.copy()

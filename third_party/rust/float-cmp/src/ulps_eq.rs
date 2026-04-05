@@ -1,6 +1,9 @@
-// Copyright 2014-2018 Optimal Computing (NZ) Ltd.
+// Copyright 2014-2020 Optimal Computing (NZ) Ltd.
 // Licensed under the MIT license.  See LICENSE for details.
 
+#[cfg(feature = "num-traits")]
+#[allow(unused_imports)]
+use num_traits::float::FloatCore;
 use super::Ulps;
 
 /// ApproxEqUlps is a trait for approximate equality comparisons.
@@ -53,7 +56,6 @@ fn f32_approx_eq_ulps_test1() {
     for _ in 0_isize..10_isize { sum += f; }
     let product: f32 = f * 10.0_f32;
     assert!(sum != product); // Should not be directly equal:
-    println!("Ulps Difference: {}",sum.ulps(&product));
     assert!(sum.approx_eq_ulps(&product,1) == true); // But should be close
     assert!(sum.approx_eq_ulps(&product,0) == false);
 }
@@ -62,7 +64,6 @@ fn f32_approx_eq_ulps_test2() {
     let x: f32 = 1000000_f32;
     let y: f32 = 1000000.1_f32;
     assert!(x != y); // Should not be directly equal
-    println!("Ulps Difference: {}",x.ulps(&y));
     assert!(x.approx_eq_ulps(&y,2) == true);
     assert!(x.approx_eq_ulps(&y,1) == false);
 }
@@ -98,7 +99,6 @@ fn f64_approx_eq_ulps_test1() {
     for _ in 0_isize..10_isize { sum += f; }
     let product: f64 = f * 10.0_f64;
     assert!(sum != product); // Should not be directly equal:
-    println!("Ulps Difference: {}",sum.ulps(&product));
     assert!(sum.approx_eq_ulps(&product,1) == true); // But should be close
     assert!(sum.approx_eq_ulps(&product,0) == false);
 }
@@ -107,7 +107,6 @@ fn f64_approx_eq_ulps_test2() {
     let x: f64 = 1000000_f64;
     let y: f64 = 1000000.0000000003_f64;
     assert!(x != y); // Should not be directly equal
-    println!("Ulps Difference: {}",x.ulps(&y));
     assert!(x.approx_eq_ulps(&y,3) == true);
     assert!(x.approx_eq_ulps(&y,2) == false);
 }

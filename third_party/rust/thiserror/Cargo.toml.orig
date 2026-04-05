@@ -1,15 +1,15 @@
 [package]
 name = "thiserror"
-version = "2.0.12"
+version = "2.0.18"
 authors = ["David Tolnay <dtolnay@gmail.com>"]
-categories = ["rust-patterns"]
+categories = ["rust-patterns", "no-std"]
 description = "derive(Error)"
 documentation = "https://docs.rs/thiserror"
 edition = "2021"
 keywords = ["error", "error-handling", "derive"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/dtolnay/thiserror"
-rust-version = "1.61"
+rust-version = "1.68"
 
 [features]
 default = ["std"]
@@ -28,13 +28,13 @@ default = ["std"]
 std = []
 
 [dependencies]
-thiserror-impl = { version = "=2.0.12", path = "impl" }
+thiserror-impl = { version = "=2.0.18", path = "impl" }
 
 [dev-dependencies]
 anyhow = "1.0.73"
 ref-cast = "1.0.18"
 rustversion = "1.0.13"
-trybuild = { version = "1.0.81", features = ["diff"] }
+trybuild = { version = "1.0.108", features = ["diff"] }
 
 [workspace]
 members = ["impl", "tests/no-std"]
@@ -43,6 +43,7 @@ members = ["impl", "tests/no-std"]
 targets = ["x86_64-unknown-linux-gnu"]
 rustdoc-args = [
     "--generate-link-to-definition",
+    "--generate-macro-expansion",
     "--extern-html-root-url=core=https://doc.rust-lang.org",
     "--extern-html-root-url=alloc=https://doc.rust-lang.org",
     "--extern-html-root-url=std=https://doc.rust-lang.org",

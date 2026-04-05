@@ -34,9 +34,9 @@ path = "src/lib.rs"
 
 [dependencies.naga]
 version = "28.0.0"
-path = "../naga"
+path = '..\naga'
 
 [dependencies.wgpu-types]
 version = "28.0.0"
-path = "../wgpu-types"
+path = '..\wgpu-types'
 default-features = false

@@ -1,4 +1,4 @@
-// Copyright 2014-2018 Optimal Computing (NZ) Ltd.
+// Copyright 2014-2020 Optimal Computing (NZ) Ltd.
 // Licensed under the MIT license.  See LICENSE for details.
 
 //! # float-cmp
@@ -79,6 +79,11 @@
 //! to +0.00000097).
 //!
 //! ## Using this crate
+//!
+//! By default this crate enables the `ratio` module providing the `ApproxEqRatio` trait.  This
+//! feature pulls in `num-traits`.  If you disable this feature, you'll need to either enable
+//! `num-traits` directly or else enable the `std` feature; otherwise it won't compile. This crate
+//! is `#![no_std]` unless you enable the `std` feature.
 //!
 //! You can use the `ApproxEq` trait directly like so:
 //!
@@ -170,16 +175,10 @@
 //!
 //! [https://randomascii.wordpress.com/2012/02/25/comparing-floating-point-numbers-2012-edition/](https://randomascii.wordpress.com/2012/02/25/comparing-floating-point-numbers-2012-edition/)
 
-#[cfg(feature="num-traits")]
-extern crate num_traits;
+#![cfg_attr(not(feature = "std"), no_std)]
 
 #[macro_use]
 mod macros;
-
-pub fn trials() {
-    println!("are they approximately equal?: {:?}",
-             approx_eq!(f32, 1.0, 1.0000001));
-}
 
 mod ulps;
 pub use self::ulps::Ulps;
@@ -190,7 +189,7 @@ pub use self::ulps_eq::ApproxEqUlps;
 mod eq;
 pub use self::eq::{ApproxEq, F32Margin, F64Margin};
 
-#[cfg(feature="num-traits")]
+#[cfg(feature="ratio")]
 mod ratio;
-#[cfg(feature="num-traits")]
+#[cfg(feature="ratio")]
 pub use self::ratio::ApproxEqRatio;

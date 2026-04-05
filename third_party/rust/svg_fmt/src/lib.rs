@@ -1,5 +1,8 @@
-mod svg;
-mod layout;
+#![no_std]
+extern crate alloc;
 
-pub use svg::*;
+mod layout;
+mod svg;
+
 pub use layout::*;
+pub use svg::*;
