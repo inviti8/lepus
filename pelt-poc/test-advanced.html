@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Lepus Pelt — Advanced SVG Test Cases</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { background: #0a0e14; color: #e8e0d4; font-family: system-ui, sans-serif; padding: 40px; margin: 0; }
+    h1 { margin-bottom: 4px; }
+    .subtitle { color: #6a6260; margin-top: 0; font-size: 14px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px; margin: 24px 0; }
+    .card { padding: 24px; min-height: 140px; }
+    .card h3 { margin: 0 0 8px 0; font-size: 16px; }
+    .card p { margin: 0; font-size: 13px; color: #b0a898; }
+    .card code { background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 3px; font-size: 12px; }
+    .wide { grid-column: span 2; }
+    .buttons { display: flex; gap: 12px; flex-wrap: wrap; margin: 24px 0; }
+    .btn { padding: 12px 28px; font-size: 14px; font-weight: 600; color: #e8e0d4; border: none; cursor: pointer; background: none; }
+    h2 { margin-top: 40px; border-bottom: 1px solid #222; padding-bottom: 8px; }
+    #status { background: #000; color: #0f0; font-family: monospace; padding: 12px; font-size: 12px; border: 1px solid #222; margin: 16px 0; }
+  </style>
+</head>
+<body>
+
+<h1>Lepus Pelt — Advanced SVG Test Cases</h1>
+<p class="subtitle">Each card uses a different SVG pelt. If the pelt pipeline is working, all cards show a dark green placeholder rectangle.</p>
+<div id="status"></div>
+
+<!-- ==============================
+     PELT DEFINITIONS
+     ============================== -->
+
+<!-- 1. Simple gradient -->
+<pelt id="gradient-card">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200">
+    <defs>
+      <linearGradient id="gc-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="rgba(122, 72, 169, 0.6)"/>
+        <stop offset="100%" stop-color="rgba(42, 24, 69, 0.9)"/>
+      </linearGradient>
+    </defs>
+    <rect width="400" height="200" rx="12" fill="url(#gc-grad)"/>
+    <rect width="400" height="200" rx="12" fill="none" stroke="rgba(159,122,193,0.3)" stroke-width="1"/>
+  </svg>
+</pelt>
+
+<!-- 2. Radial glow -->
+<pelt id="glow-card">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200">
+    <defs>
+      <radialGradient id="glw-rad" cx="50%" cy="50%" r="60%">
+        <stop offset="0%" stop-color="rgba(233, 69, 96, 0.15)"/>
+        <stop offset="100%" stop-color="rgba(10, 14, 20, 0.95)"/>
+      </radialGradient>
+    </defs>
+    <rect width="400" height="200" fill="url(#glw-rad)"/>
+    <rect width="400" height="200" fill="none" stroke="rgba(233,69,96,0.2)" stroke-width="1"/>
+  </svg>
+</pelt>
+
+<!-- 3. Glassmorphism -->
+<pelt id="glass-card">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200">
+    <defs>
+      <linearGradient id="gls-grad" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="rgba(255,255,255,0.12)"/>
+        <stop offset="50%" stop-color="rgba(255,255,255,0.04)"/>
+        <stop offset="100%" stop-color="rgba(255,255,255,0.08)"/>
+      </linearGradient>
+    </defs>
+    <rect width="400" height="200" rx="16" fill="url(#gls-grad)"/>
+    <rect width="400" height="200" rx="16" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+    <line x1="20" y1="0.5" x2="380" y2="0.5" stroke="rgba(255,255,255,0.25)" stroke-width="1"/>
+  </svg>
+</pelt>
+
+<!-- 4. Neon border -->
+<pelt id="neon-card">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200">
+    <defs>
+      <filter id="neo-glow" x="-20%" y="-20%" width="140%" height="140%">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur"/>
+      </filter>
+    </defs>
+    <rect width="400" height="200" rx="8" fill="#0f0f1e"/>
+    <rect width="400" height="200" rx="8" fill="none" stroke="#00f0ff" stroke-width="2"/>
+    <rect width="400" height="200" rx="8" fill="none" stroke="#00f0ff" stroke-width="1" opacity="0.4" filter="url(#neo-glow)"/>
+  </svg>
+</pelt>
+
+<!-- 5. Organic / nature frame -->
+<pelt id="organic-card">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200">
+    <rect width="400" height="200" rx="24" fill="rgba(245,240,230,0.04)"/>
+    <rect width="400" height="200" rx="24" fill="none" stroke="rgba(90,114,71,0.4)" stroke-width="2" stroke-dasharray="12 6"/>
+    <circle cx="24" cy="24" r="5" fill="rgba(90,114,71,0.5)"/>
+    <circle cx="376" cy="24" r="5" fill="rgba(90,114,71,0.5)"/>
+    <circle cx="24" cy="176" r="5" fill="rgba(90,114,71,0.5)"/>
+    <circle cx="376" cy="176" r="5" fill="rgba(90,114,71,0.5)"/>
+    <circle cx="200" cy="24" r="3" fill="rgba(90,114,71,0.3)"/>
+    <circle cx="200" cy="176" r="3" fill="rgba(90,114,71,0.3)"/>
+  </svg>
+</pelt>
+
+<!-- 6. Cyberpunk angular -->
+<pelt id="cyber-card">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200">
+    <path d="M 20,0 L 380,0 L 400,20 L 400,180 L 380,200 L 20,200 L 0,180 L 0,20 Z"
+          fill="rgba(10,10,30,0.92)"/>
+    <path d="M 20,0 L 380,0 L 400,20 L 400,180 L 380,200 L 20,200 L 0,180 L 0,20 Z"
+          fill="none" stroke="#00f0ff" stroke-width="1.5"/>
+    <line x1="20" y1="0" x2="0" y2="20" stroke="#00f0ff" stroke-width="2"/>
+    <line x1="380" y1="0" x2="400" y2="20" stroke="#00f0ff" stroke-width="2"/>
+    <line x1="400" y1="180" x2="380" y2="200" stroke="#00f0ff" stroke-width="2"/>
+    <line x1="0" y1="180" x2="20" y2="200" stroke="#00f0ff" stroke-width="2"/>
+  </svg>
+</pelt>
+
+<!-- 7. Dot pattern overlay -->
+<pelt id="dotted-card">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200">
+    <defs>
+      <pattern id="dot-pat" x="0" y="0" width="16" height="16" patternUnits="userSpaceOnUse">
+        <circle cx="8" cy="8" r="1.5" fill="rgba(255,255,255,0.08)"/>
+      </pattern>
+    </defs>
+    <rect width="400" height="200" rx="12" fill="#12141a"/>
+    <rect width="400" height="200" rx="12" fill="url(#dot-pat)"/>
+    <rect width="400" height="200" rx="12" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+  </svg>
+</pelt>
+
+<!-- 8. Drop shadow card -->
+<pelt id="shadow-card">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200">
+    <defs>
+      <filter id="shd-drop" x="-10%" y="-10%" width="120%" height="130%">
+        <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="rgba(0,0,0,0.5)"/>
+      </filter>
+    </defs>
+    <rect x="8" y="4" width="384" height="188" rx="16" fill="#1a1e2e" filter="url(#shd-drop)"/>
+    <rect x="8" y="4" width="384" height="188" rx="16" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+  </svg>
+</pelt>
+
+<!-- 9. Neon button -->
+<pelt id="neon-btn">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60">
+    <defs>
+      <filter id="btn-glow" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="4"/>
+      </filter>
+    </defs>
+    <rect width="200" height="60" rx="8" fill="#1a1a2e"/>
+    <rect width="200" height="60" rx="8" fill="none" stroke="#e94560" stroke-width="2"/>
+    <rect width="200" height="60" rx="8" fill="none" stroke="#e94560" stroke-width="1" opacity="0.4" filter="url(#btn-glow)"/>
+  </svg>
+</pelt>
+
+<!-- 10. Organic button -->
+<pelt id="organic-btn">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60">
+    <rect width="200" height="60" rx="30" fill="rgba(90,114,71,0.2)"/>
+    <rect width="200" height="60" rx="30" fill="none" stroke="rgba(90,114,71,0.5)" stroke-width="1.5"/>
+  </svg>
+</pelt>
+
+<!-- 11. Gradient stripe -->
+<pelt id="stripe-card">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200">
+    <defs>
+      <linearGradient id="stp-grad" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#e94560"/>
+        <stop offset="25%" stop-color="#0f3460"/>
+        <stop offset="50%" stop-color="#16213e"/>
+        <stop offset="75%" stop-color="#0f3460"/>
+        <stop offset="100%" stop-color="#e94560"/>
+      </linearGradient>
+    </defs>
+    <rect width="400" height="200" rx="12" fill="#0f0f1e"/>
+    <rect y="0" width="400" height="3" fill="url(#stp-grad)"/>
+    <rect width="400" height="200" rx="12" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+  </svg>
+</pelt>
+
+<!-- 12. Complex multi-layer -->
+<pelt id="complex-card">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 300">
+    <defs>
+      <linearGradient id="cpx-bg" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="rgba(26, 26, 46, 0.95)"/>
+        <stop offset="100%" stop-color="rgba(15, 15, 30, 0.98)"/>
+      </linearGradient>
+      <radialGradient id="cpx-glow" cx="30%" cy="30%" r="50%">
+        <stop offset="0%" stop-color="rgba(233,69,96,0.08)"/>
+        <stop offset="100%" stop-color="rgba(0,0,0,0)"/>
+      </radialGradient>
+      <pattern id="cpx-grid" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+        <line x1="40" y1="0" x2="40" y2="40" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+        <line x1="0" y1="40" x2="40" y2="40" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+      </pattern>
+    </defs>
+    <!-- Layer 1: Background gradient -->
+    <rect width="600" height="300" rx="16" fill="url(#cpx-bg)"/>
+    <!-- Layer 2: Grid pattern -->
+    <rect width="600" height="300" rx="16" fill="url(#cpx-grid)"/>
+    <!-- Layer 3: Corner glow -->
+    <rect width="600" height="300" fill="url(#cpx-glow)"/>
+    <!-- Layer 4: Border -->
+    <rect width="600" height="300" rx="16" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+    <!-- Layer 5: Accent line top -->
+    <line x1="24" y1="0.5" x2="576" y2="0.5" stroke="rgba(233,69,96,0.3)" stroke-width="1"/>
+    <!-- Layer 6: Corner marks -->
+    <line x1="0" y1="20" x2="20" y2="0" stroke="rgba(233,69,96,0.2)" stroke-width="1"/>
+    <line x1="580" y1="0" x2="600" y2="20" stroke="rgba(233,69,96,0.2)" stroke-width="1"/>
+  </svg>
+</pelt>
+
+
+<!-- ==============================
+     TEST ELEMENTS
+     ============================== -->
+
+<h2>Cards</h2>
+<div class="grid">
+  <div pelt="gradient-card" class="card">
+    <h3>1. Gradient Card</h3>
+    <p>Linear gradient with semi-transparent purple tones and a subtle border.</p>
+    <p><code>linearGradient + stroke</code></p>
+  </div>
+
+  <div pelt="glow-card" class="card">
+    <h3>2. Radial Glow</h3>
+    <p>Centered radial gradient creating a vignette/spotlight effect.</p>
+    <p><code>radialGradient</code></p>
+  </div>
+
+  <div pelt="glass-card" class="card">
+    <h3>3. Glassmorphism</h3>
+    <p>Multi-stop diagonal gradient with thin border and top highlight line.</p>
+    <p><code>linearGradient diagonal + line highlight</code></p>
+  </div>
+
+  <div pelt="neon-card" class="card">
+    <h3>4. Neon Border</h3>
+    <p>Dark fill with neon cyan border and blurred glow effect.</p>
+    <p><code>feGaussianBlur + double stroke</code></p>
+  </div>
+
+  <div pelt="organic-card" class="card">
+    <h3>5. Organic Frame</h3>
+    <p>Dashed nature-inspired border with corner accent dots.</p>
+    <p><code>stroke-dasharray + circles</code></p>
+  </div>
+
+  <div pelt="cyber-card" class="card">
+    <h3>6. Cyberpunk Angular</h3>
+    <p>Non-rectangular shape using SVG path with cut corners and accent lines.</p>
+    <p><code>path + line accents</code></p>
+  </div>
+
+  <div pelt="dotted-card" class="card">
+    <h3>7. Dot Pattern</h3>
+    <p>Repeating dot pattern overlay on a dark surface.</p>
+    <p><code>pattern + circle</code></p>
+  </div>
+
+  <div pelt="shadow-card" class="card">
+    <h3>8. Drop Shadow</h3>
+    <p>Elevated card with SVG drop shadow filter.</p>
+    <p><code>feDropShadow</code></p>
+  </div>
+
+  <div pelt="stripe-card" class="card">
+    <h3>11. Gradient Stripe</h3>
+    <p>Horizontal accent gradient bar at the top of the card.</p>
+    <p><code>multi-stop linearGradient + rect</code></p>
+  </div>
+
+  <div pelt="complex-card" class="card wide">
+    <h3>12. Complex Multi-Layer</h3>
+    <p>6-layer composition: diagonal gradient + grid pattern + radial glow + border + accent line + corner marks. This is the kind of visual that's difficult or impossible with CSS alone.</p>
+    <p><code>linearGradient + pattern + radialGradient + lines</code></p>
+  </div>
+</div>
+
+<h2>Buttons</h2>
+<div class="buttons">
+  <button pelt="neon-btn" class="btn">Neon Button</button>
+  <button pelt="organic-btn" class="btn">Organic Button</button>
+  <button pelt="neon-btn" class="btn">Another Neon</button>
+</div>
+
+<h2>Shared Pelts</h2>
+<div class="grid">
+  <div pelt="glass-card" class="card">
+    <h3>Glass A</h3>
+    <p>Same pelt as card 3 — shared definitions render on multiple elements.</p>
+  </div>
+  <div pelt="glass-card" class="card">
+    <h3>Glass B</h3>
+    <p>Second instance of the glass pelt.</p>
+  </div>
+  <div pelt="glass-card" class="card">
+    <h3>Glass C</h3>
+    <p>Third instance. All share the same pelt definition.</p>
+  </div>
+</div>
+
+<script>
+  const pelts = document.querySelectorAll('pelt');
+  const pelted = document.querySelectorAll('[pelt]');
+  const status = document.getElementById('status');
+  status.textContent = `${pelts.length} pelt definitions found | ${pelted.length} pelted elements | ` +
+    `Constructor: ${pelts[0]?.constructor.name || 'N/A'} | ` +
+    `All pelts have SVG: ${[...pelts].every(p => p.querySelector('svg')) ? 'YES' : 'NO'}`;
+</script>
+
+</body>
+</html>

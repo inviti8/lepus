@@ -4,30 +4,39 @@ Low-level reference for every class, struct, function, and method in the pelt sy
 
 ---
 
-## Data Flow
+## Data Flow (Current Implementation)
 
 ```
-HTML Parser
+HTML5 Parser creates <pelt> as HTMLUnknownElement
+  |  (nsHtml5ElementName hash table does not include "pelt")
+  |  Element is display:none, children (SVG) are parsed normally
+  v
+Page renders, element with pelt="X" reaches painting
   |
   v
-HTMLPeltElement (dom/html/)
-  |  BindToTree() extracts SVG, creates PeltDefinition
+nsIFrame::DisplayBorderBackgroundOutline (layout/generic/nsIFrame.cpp)
+  |  Detects pelt="X" attribute on element
+  |  Calls PeltRegistry::GetOrCreate()->Lookup(X)
+  |  On cache miss: lazy registration — finds <pelt id="X"> in document,
+  |  creates PeltDefinition with placeholder SVG, registers it
   v
 PeltRegistry (layout/pelt/)
   |  Stores PeltDefinition keyed by nsAtom ID
   v
 nsDisplayPelt (layout/pelt/)
-  |  Created during display list construction for elements with pelt="" attribute
-  |  Reads PeltDefinition from registry, detects interactive state
+  |  Appended to BorderBackground display list
+  |  CreateWebRenderCommands() pushes placeholder colored rect
+  |  (Vello FFI stubbed — real GPU rendering when deps are vendored)
   v
-vello_pelt_render() FFI (gfx/vello_bindings/)
-  |  Resolves tokens, parses SVG, renders via Vello GPU pipeline
-  v
-PeltCompositor (gfx/vello_bindings/)
-  |  Registers texture with WebRender via ExternalImageHandler
-  v
-WebRender composites pelt texture behind element content
+WebRender composites colored rect behind element content
 ```
+
+**Note on HTML5 parser:** The `<pelt>` tag is registered in `nsHTMLTagList.inc`
+(legacy parser) and has a full `HTMLPeltElement` C++ class with WebIDL bindings.
+However, the HTML5 parser (`nsHtml5ElementName.cpp`) uses an auto-generated
+hash table from Java and creates `<pelt>` as `HTMLUnknownElement`. The lazy
+registration in `nsIFrame.cpp` bridges this gap. Full HTML5 parser integration
+requires regenerating the hash table from the Java source.
 
 ---
 
@@ -189,8 +198,8 @@ Custom display item that renders a pelt texture in place of CSS background/borde
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
-| `Paint()` | `void Paint(nsDisplayListBuilder* aBuilder, gfxContext* aCtx)` | Software fallback. Draws a placeholder solid color rectangle. Used when WebRender is disabled. |
-| `CreateWebRenderCommands()` | `bool CreateWebRenderCommands(wr::DisplayListBuilder&, wr::IpcResourceUpdateQueue&, const StackingContextHelper&, layers::RenderRootStateManager*, nsDisplayListBuilder*)` | Primary render path. Converts bounds via `LayoutDevicePixel::FromAppUnits()`, gets SVG from definition, detects interactive state via `GetCurrentState()`, calls `vello_pelt_render()` FFI, pushes WebRender display item via `PushRect()` (6 args: bounds, clip, backfaceVisible, forceAA, checkerboard, color). Currently pushes placeholder solid rect. |
+| `Paint()` | `void Paint(nsDisplayListBuilder* aBuilder, gfxContext* aCtx)` | No-op. WebRender is always enabled in modern Firefox. |
+| `CreateWebRenderCommands()` | `bool CreateWebRenderCommands(wr::DisplayListBuilder&, wr::IpcResourceUpdateQueue&, const StackingContextHelper&, layers::RenderRootStateManager*, nsDisplayListBuilder*)` | Primary render path. Converts bounds via `LayoutDevicePixel::FromAppUnits()`. Currently pushes a placeholder dark green solid rect via `PushRect()` (6 args: bounds, clip, backfaceVisible, forceAA, checkerboard, color). Vello FFI calls are stubbed out until Rust deps are vendored. |
 | `GetBounds()` | `nsRect GetBounds(nsDisplayListBuilder*, bool* aSnap) const` | Returns the frame's ink overflow rect plus reference frame offset. |
 
 ### Private Methods
@@ -481,6 +490,8 @@ Top-level FFI entry points for the Vello rendering pipeline. All `#[no_mangle] p
 | `layout/style/res/html.css` | Added `pelt` to `display: none` rule | `/* LEPUS */` |
 | `layout/painting/nsDisplayItemTypesList.inc` | `DECLARE_DISPLAY_ITEM_TYPE(PELT, TYPE_IS_CONTENTFUL)` | `// LEPUS` |
 | `xpcom/ds/StaticAtoms.py` | Added `pelt`, `pelt-hover`, `pelt-active`, `pelt-focus`, `pelt-disabled`, `pelt-checked`, `slice-top`, `slice-right`, `slice-bottom`, `slice-left` atoms | `# LEPUS` |
+| `layout/generic/nsIFrame.cpp` | Pelt attribute check + lazy registration in `DisplayBorderBackgroundOutline()`. Includes `PeltRegistry.h` and `nsDisplayPelt.h`. | `// LEPUS:` |
+| `dom/base/nsIContent.h` | Added `pelt` to `RequiresDoneAddingChildren()` | `// LEPUS` |
 | `layout/moz.build` | `DIRS += ["pelt"]` | `# LEPUS` |
 | `dom/moz.build` | `DIRS += ["pelt"]` | `# LEPUS` |
 | `gfx/moz.build` | `DIRS += ["vello_bindings"]` | `# LEPUS` |
