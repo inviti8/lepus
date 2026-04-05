@@ -4,13 +4,46 @@
 
 // Lepus branding-specific prefs.
 
+// Blank startup — no news, no ads, no Mozilla services
 pref("startup.homepage_override_url", "");
 pref("startup.homepage_welcome_url", "");
 pref("startup.homepage_welcome_url.additional", "");
-pref("app.update.interval", 86400); // 24 hours
-pref("app.update.promptWaitTime", 86400);
+pref("browser.startup.homepage", "about:blank");
+pref("browser.startup.page", 0); // 0 = blank, 1 = home, 3 = restore
+pref("browser.newtabpage.enabled", false);
+pref("browser.newtabpage.activity-stream.feeds.section.topstories", false);
+pref("browser.newtabpage.activity-stream.feeds.topsites", false);
+pref("browser.newtabpage.activity-stream.feeds.snippets", false);
+pref("browser.newtabpage.activity-stream.showSponsored", false);
+pref("browser.newtabpage.activity-stream.showSponsoredTopSites", false);
+pref("browser.newtabpage.activity-stream.default.sites", "");
+
+// Disable telemetry, experiments, crash reporting
+pref("toolkit.telemetry.enabled", false);
+pref("toolkit.telemetry.unified", false);
+pref("toolkit.telemetry.server", "");
+pref("datareporting.healthreport.uploadEnabled", false);
+pref("datareporting.policy.dataSubmissionEnabled", false);
+pref("app.normandy.enabled", false);
+pref("app.shield.optoutstudies.enabled", false);
+pref("browser.discovery.enabled", false);
+pref("browser.ping-centre.telemetry", false);
+
+// Disable auto-update (fork manages its own updates)
+pref("app.update.enabled", false);
+pref("app.update.interval", 0);
+pref("app.update.promptWaitTime", 0);
 pref("app.update.url.manual", "https://heavymeta.art/lepus");
 pref("app.update.url.details", "https://heavymeta.art/lepus");
-pref("app.update.checkInstallTime.days", 2);
+pref("app.update.checkInstallTime.days", 9999);
 pref("app.update.badgeWaitTime", 0);
+
+// Disable Mozilla-specific services
+pref("browser.contentblocking.report.lockwise.enabled", false);
+pref("browser.contentblocking.report.monitor.enabled", false);
+pref("extensions.pocket.enabled", false);
+pref("identity.fxaccounts.enabled", false);
+pref("browser.tabs.firefox-view", false);
+
+// Dev tools always available
 pref("devtools.selfxss.count", 5);
