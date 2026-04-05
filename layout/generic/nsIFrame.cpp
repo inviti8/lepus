@@ -215,7 +215,6 @@ struct nsContentAndOffset {
 // LEPUS: Pelt system includes
 #include "mozilla/PeltRegistry.h"
 #include "mozilla/nsDisplayPelt.h"
-#include "nsDOMSerializer.h"
 
 FrameDestroyContext::~FrameDestroyContext() {
   for (auto& content : mozilla::Reversed(mAnonymousContent)) {
@@ -2695,16 +2694,40 @@ void nsIFrame::DisplayBorderBackgroundOutline(nsDisplayListBuilder* aBuilder,
         mozilla::dom::Document* doc = mContent->GetComposedDoc();
         mozilla::dom::Element* peltEl = doc->GetElementById(peltId);
         if (peltEl && peltEl->NodeInfo()->NameAtom() == nsGkAtoms::pelt) {
-          // Serialize the first SVG child element to markup
+          // Extract the first fill color from SVG children for
+          // placeholder rendering. Full SVG serialization happens
+          // outside the paint path (nsDOMSerializer is not paint-safe).
           nsAutoString svgSource;
+          nsAutoString fillColor;
           for (nsIContent* child = peltEl->GetFirstChild(); child;
                child = child->GetNextSibling()) {
-            if (child->IsSVGElement()) {
-              nsDOMSerializer serializer;
-              mozilla::ErrorResult serializeRv;
-              serializer.SerializeToString(*child, svgSource, serializeRv);
+            if (child->IsSVGElement() && child->IsElement()) {
+              // Walk SVG children to find a fill attribute
+              for (nsIContent* svgChild = child->GetFirstChild();
+                   svgChild; svgChild = svgChild->GetNextSibling()) {
+                if (svgChild->IsElement()) {
+                  svgChild->AsElement()->GetAttr(nsGkAtoms::fill, fillColor);
+                  if (!fillColor.IsEmpty()) break;
+                }
+              }
+              if (fillColor.IsEmpty()) {
+                child->AsElement()->GetAttr(nsGkAtoms::fill, fillColor);
+              }
+              // Store fill color as a minimal SVG for the PeltDefinition
+              if (!fillColor.IsEmpty()) {
+                svgSource.AssignLiteral(u"<svg xmlns='http://www.w3.org/2000/svg'>"
+                    u"<rect width='1' height='1' fill='");
+                svgSource.Append(fillColor);
+                svgSource.AppendLiteral(u"'/></svg>");
+              }
               break;
             }
+          }
+          // Fallback if no fill found
+          if (svgSource.IsEmpty()) {
+            svgSource.AssignLiteral(
+                u"<svg xmlns='http://www.w3.org/2000/svg'>"
+                u"<rect width='1' height='1' fill='#1a2a1a'/></svg>");
           }
           if (!svgSource.IsEmpty()) {
             RefPtr<mozilla::PeltDefinition> newDef =
