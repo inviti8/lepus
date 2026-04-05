@@ -183,6 +183,95 @@ pub extern "C" fn vello_pelt_invalidate(
     }
 }
 
+/// Parse SVG and extract the dominant fill color via usvg.
+/// Returns RGBA as packed u32 (0xRRGGBBAA). Returns 0 on failure.
+/// This is the lightweight path — no GPU, no texture, just color extraction.
+#[no_mangle]
+pub extern "C" fn vello_pelt_extract_fill(
+    svg_data: *const u8,
+    svg_len: usize,
+    out_r: *mut u8,
+    out_g: *mut u8,
+    out_b: *mut u8,
+    out_a: *mut u8,
+) -> bool {
+    if svg_data.is_null() || out_r.is_null() {
+        return false;
+    }
+
+    let svg_str = unsafe {
+        let slice = std::slice::from_raw_parts(svg_data, svg_len);
+        match std::str::from_utf8(slice) {
+            Ok(s) => s,
+            Err(_) => return false,
+        }
+    };
+
+    let tree = match usvg::Tree::from_str(svg_str, &usvg::Options::default()) {
+        Ok(t) => t,
+        Err(_) => return false,
+    };
+
+    // Walk tree to find first fill
+    fn find_fill(node: &usvg::Node) -> Option<(u8, u8, u8, u8)> {
+        match node {
+            usvg::Node::Path(path) => {
+                if let Some(ref fill) = path.fill() {
+                    match fill.paint() {
+                        usvg::Paint::Color(c) => {
+                            let a = (fill.opacity().get() * 255.0) as u8;
+                            return Some((c.red, c.green, c.blue, a));
+                        }
+                        usvg::Paint::LinearGradient(grad) => {
+                            if let Some(stop) = grad.stops().first() {
+                                let a = (stop.opacity().get() * fill.opacity().get() * 255.0) as u8;
+                                return Some((stop.color().red, stop.color().green, stop.color().blue, a));
+                            }
+                        }
+                        usvg::Paint::RadialGradient(grad) => {
+                            if let Some(stop) = grad.stops().first() {
+                                let a = (stop.opacity().get() * fill.opacity().get() * 255.0) as u8;
+                                return Some((stop.color().red, stop.color().green, stop.color().blue, a));
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            usvg::Node::Group(group) => {
+                for child in group.children() {
+                    if let Some(c) = find_fill(child) {
+                        return Some(c);
+                    }
+                }
+            }
+            _ => {}
+        }
+        None
+    }
+
+    if let Some((r, g, b, a)) = {
+        let mut result = None;
+        for node in tree.root().children() {
+            if let Some(c) = find_fill(node) {
+                result = Some(c);
+                break;
+            }
+        }
+        result
+    } {
+        unsafe {
+            *out_r = r;
+            *out_g = g;
+            *out_b = b;
+            *out_a = a;
+        }
+        true
+    } else {
+        false
+    }
+}
+
 fn parse_tokens_json(json: &str) -> HashMap<String, String> {
     // Minimal JSON object parser for {"key":"value",...} format.
     // Avoids pulling in serde_json as a dependency.
