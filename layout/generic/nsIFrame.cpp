@@ -2683,16 +2683,41 @@ void nsIFrame::DisplayBorderBackgroundOutline(nsDisplayListBuilder* aBuilder,
     if (mContent->AsElement()->GetAttr(nsGkAtoms::pelt, peltId) &&
         !peltId.IsEmpty()) {
       RefPtr<nsAtom> peltAtom = NS_Atomize(peltId);
-      mozilla::PeltRegistry* registry = mozilla::PeltRegistry::Get();
-      if (registry) {
-        mozilla::PeltDefinition* def = registry->Lookup(peltAtom);
-        if (def) {
-          aLists.BorderBackground()
-              ->AppendNewToTop<mozilla::nsDisplayPelt>(aBuilder, this,
-                                                       peltAtom, def);
-          DisplayOutlineUnconditional(aBuilder, aLists);
-          return;
+      mozilla::PeltRegistry* registry = mozilla::PeltRegistry::GetOrCreate();
+
+      // Lazy registration: if the pelt isn't in the registry yet, find
+      // the <pelt> element in the document and register it now.
+      // This handles the case where the HTML5 parser creates <pelt> as
+      // HTMLUnknownElement (bypassing HTMLPeltElement::DoneAddingChildren).
+      mozilla::PeltDefinition* def = registry->Lookup(peltAtom);
+      if (!def && mContent->GetComposedDoc()) {
+        mozilla::dom::Document* doc = mContent->GetComposedDoc();
+        mozilla::dom::Element* peltEl = doc->GetElementById(peltId);
+        if (peltEl && peltEl->NodeInfo()->NameAtom() == nsGkAtoms::pelt) {
+          // Placeholder SVG source. Full implementation will serialize
+          // the child <svg> element. For now, just confirm the pipeline.
+          nsAutoString svgSource(
+              u"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'>"
+              u"<rect width='1' height='1' fill='#1a2a1a'/></svg>"_ns);
+          if (!svgSource.IsEmpty()) {
+            RefPtr<mozilla::PeltDefinition> newDef =
+                new mozilla::PeltDefinition(
+                    peltAtom, svgSource,
+                    mozilla::PeltScaleMode::Stretch,
+                    mozilla::PeltSliceValues(),
+                    mozilla::PeltContentInsets());
+            registry->Register(peltAtom, newDef);
+            def = newDef.get();
+          }
         }
+      }
+
+      if (def) {
+        aLists.BorderBackground()
+            ->AppendNewToTop<mozilla::nsDisplayPelt>(aBuilder, this,
+                                                     peltAtom, def);
+        DisplayOutlineUnconditional(aBuilder, aLists);
+        return;
       }
     }
   }
