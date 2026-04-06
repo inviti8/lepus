@@ -45,15 +45,27 @@ pref("extensions.pocket.enabled", false);
 pref("identity.fxaccounts.enabled", false);
 pref("browser.tabs.firefox-view", false);
 
-// Disable search engine integration
+// Disable search engine integration entirely
 pref("browser.search.suggest.enabled", false);
 pref("browser.search.suggest.enabled.private", false);
 pref("browser.urlbar.suggest.searches", false);
+pref("browser.urlbar.suggest.engines", false);
+pref("browser.urlbar.suggest.topsites", false);
+pref("browser.urlbar.suggest.quicksuggest.sponsored", false);
+pref("browser.urlbar.suggest.quicksuggest.nonsponsored", false);
+pref("browser.urlbar.suggest.trending", false);
+pref("browser.urlbar.suggest.recentsearches", false);
+pref("browser.urlbar.suggest.weather", false);
+pref("browser.urlbar.suggest.yelp", false);
+pref("browser.urlbar.suggest.clipboard", false);
 pref("browser.urlbar.shortcuts.bookmarks", false);
 pref("browser.urlbar.shortcuts.tabs", false);
 pref("browser.urlbar.shortcuts.history", false);
 pref("browser.search.widget.inNavBar", false);
 pref("browser.urlbar.showSearchSuggestionsFirst", false);
+pref("browser.urlbar.quicksuggest.enabled", false);
+pref("browser.search.separatePrivateDefault", false);
+pref("browser.search.defaultenginename", "");
 pref("keyword.enabled", false);
 
 // Disable GenAI and AI Window (invasive features)
