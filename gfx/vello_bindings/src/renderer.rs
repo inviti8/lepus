@@ -48,9 +48,17 @@ impl PeltRenderer {
             });
         }
 
-        // Filter SVG to matching state group, then render
+        // Filter SVG to matching state group
         let filtered = filter_svg_state(svg_source, state);
-        let pixels = render_svg_to_pixels(&filtered, width, height)?;
+
+        // Resolve theme tokens if any var(--pelt-*) references exist
+        let resolved = if filtered.contains("var(--pelt-") {
+            crate::token_resolver::resolve_tokens(&filtered, &std::collections::HashMap::new())
+        } else {
+            filtered
+        };
+
+        let pixels = render_svg_to_pixels(&resolved, width, height, None)?;
 
         let id = self.cache.put_texture(cache_key, "", width, height, pixels);
         Ok(PeltTextureHandle { id, width, height })
@@ -123,27 +131,57 @@ fn extract_defs(svg_source: &str) -> Option<String> {
 }
 
 /// Render SVG source string to BGRA pixel buffer using resvg (CPU).
-fn render_svg_to_pixels(svg_source: &str, width: u32, height: u32) -> Result<Vec<u8>, &'static str> {
+/// If `slice_insets` is provided, renders at viewBox size then composites
+/// via 9-slice scaling to the target dimensions.
+fn render_svg_to_pixels(
+    svg_source: &str,
+    width: u32,
+    height: u32,
+    slice_insets: Option<&crate::nine_slice::SliceInsets>,
+) -> Result<Vec<u8>, &'static str> {
     let tree = usvg::Tree::from_str(svg_source, &usvg::Options::default())
         .map_err(|_| "usvg parse failed")?;
 
-    let mut pixmap = resvg::tiny_skia::Pixmap::new(width, height)
-        .ok_or("pixmap creation failed")?;
-
     let svg_size = tree.size();
-    let sx = width as f32 / svg_size.width();
-    let sy = height as f32 / svg_size.height();
-    let transform = resvg::tiny_skia::Transform::from_scale(sx, sy);
 
-    resvg::render(&tree, transform, &mut pixmap.as_mut());
+    if let Some(insets) = slice_insets {
+        // 9-slice: render at viewBox size, then composite
+        let vw = svg_size.width() as u32;
+        let vh = svg_size.height() as u32;
+        if vw == 0 || vh == 0 { return Err("zero viewBox"); }
 
-    // Convert premultiplied RGBA to BGRA for WebRender
-    let mut data = pixmap.take();
-    for pixel in data.chunks_exact_mut(4) {
-        pixel.swap(0, 2);
+        let mut src_pixmap = resvg::tiny_skia::Pixmap::new(vw, vh)
+            .ok_or("src pixmap failed")?;
+        resvg::render(&tree, resvg::tiny_skia::Transform::default(), &mut src_pixmap.as_mut());
+
+        // Convert RGBA -> BGRA
+        let mut src_data = src_pixmap.take();
+        for pixel in src_data.chunks_exact_mut(4) {
+            pixel.swap(0, 2);
+        }
+
+        // Composite 9 slices
+        Ok(crate::nine_slice::composite_9slice(
+            &src_data, vw, vh, width, height, insets,
+        ))
+    } else {
+        // Stretch: render directly at target size
+        let mut pixmap = resvg::tiny_skia::Pixmap::new(width, height)
+            .ok_or("pixmap creation failed")?;
+
+        let sx = width as f32 / svg_size.width();
+        let sy = height as f32 / svg_size.height();
+        let transform = resvg::tiny_skia::Transform::from_scale(sx, sy);
+
+        resvg::render(&tree, transform, &mut pixmap.as_mut());
+
+        let mut data = pixmap.take();
+        for pixel in data.chunks_exact_mut(4) {
+            pixel.swap(0, 2);
+        }
+
+        Ok(data)
     }
-
-    Ok(data)
 }
 
 fn hash_string(s: &str) -> u64 {
