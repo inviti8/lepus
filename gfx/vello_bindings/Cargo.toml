@@ -9,6 +9,7 @@ description = "FFI bindings for Vello GPU 2D renderer integration with Gecko"
 vello = { version = "0.8", default-features = false }
 vello_svg = { version = "0.9" }
 usvg = { version = "0.46" }
+resvg = { version = "0.46" }
 
 [lib]
 name = "vello_bindings"
