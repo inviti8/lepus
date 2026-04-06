@@ -73,7 +73,7 @@ bool nsDisplayPelt::CreateWebRenderCommands(
                                   gfx::SurfaceFormat::B8G8R8A8);
 
   // Add image to WebRender resources directly from pixel buffer
-  Range<uint8_t> pixelRange(pixels, pixels + pixelsLen);
+  Range<uint8_t> pixelRange(pixels, pixelsLen);
   aResources.AddImage(key, descriptor, pixelRange);
 
   // Free the Rust-allocated pixel buffer
