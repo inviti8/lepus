@@ -1,10 +1,11 @@
 name: Build Lepus
 
 on:
-  push:
-    branches: [main, develop]
-  pull_request:
-    branches: [main]
+  # Push and PR triggers disabled — use manual dispatch only
+  # push:
+  #   branches: [main, develop]
+  # pull_request:
+  #   branches: [main]
   workflow_dispatch:
     inputs:
       platform:
