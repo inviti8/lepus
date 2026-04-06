@@ -10,24 +10,23 @@ The naming draws from Anishinaabe tradition: Nanabozho (the Great Hare) is the t
 
 | | |
 |---|---|
-| **Model repo** | `inviti8/lupus` |
-| **Browser repo** | `inviti8/lepus` |
-| **Relationship** | Lupus is trained and published separately. Lepus downloads and runs Lupus models locally via the ML Toolkit's Llama C++ pipeline. |
+| **Lupus repo** | `inviti8/lupus` — daemon, models, training, tools, IPFS client |
+| **Lepus repo** | `inviti8/lepus` — browser with thin LupusClient |
+| **Relationship** | Lupus runs as a separate daemon process. Lepus communicates via WebSocket on localhost:9549. Models, tools, and IPFS/crawler live in the Lupus repo. Browser stays lean. |
 
 ---
 
 ## Architecture
 
 ```
-Lepus Browser
-  │
-  ├── ML Toolkit (toolkit/components/ml/)
-  │   └── Llama C++ Pipeline
-  │       ├── Lupus Search Model (TinyAgent-based, ~700MB GGUF)
-  │       │   ├── search adapter LoRA (~50MB)
-  │       │   └── content adapter LoRA (~50MB)
-  │       │
-  │       └── Lupus Security Model (code-trained, ~500MB GGUF)
+Lepus Browser                      Lupus Daemon (separate process)
+  │                                  │
+  │  WebSocket (localhost:9549)      ├── TinyAgent search model + LoRA adapters
+  │◄────────────────────────────────►├── Security model (code-trained)
+  │                                  ├── IPFS client (Iroh)
+  │  browser/components/lupus/       ├── Distributed crawler/indexer
+  │    LupusClient.sys.mjs           ├── Local semantic search index
+  │                                  └── Tools (search, fetch, scan, crawl)
   │           └── Prompt-engineered for HTML/JS threat analysis
   │
   └── Integration Points
