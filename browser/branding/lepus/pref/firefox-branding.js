@@ -45,5 +45,28 @@ pref("extensions.pocket.enabled", false);
 pref("identity.fxaccounts.enabled", false);
 pref("browser.tabs.firefox-view", false);
 
+// Disable search engine integration
+pref("browser.search.suggest.enabled", false);
+pref("browser.search.suggest.enabled.private", false);
+pref("browser.urlbar.suggest.searches", false);
+pref("browser.urlbar.shortcuts.bookmarks", false);
+pref("browser.urlbar.shortcuts.tabs", false);
+pref("browser.urlbar.shortcuts.history", false);
+pref("browser.search.widget.inNavBar", false);
+pref("browser.urlbar.showSearchSuggestionsFirst", false);
+pref("keyword.enabled", false);
+
+// Disable GenAI and AI Window (invasive features)
+pref("browser.ml.chat.enabled", false);
+pref("browser.ml.chat.sidebar", false);
+pref("browser.ml.chat.page", false);
+pref("browser.ml.linkPreview.enabled", false);
+pref("browser.ml.pageAssist.enabled", false);
+pref("browser.smartwindow.enabled", false);
+pref("browser.smartwindow.memories.generateFromHistory", false);
+pref("browser.smartwindow.memories.generateFromConversation", false);
+pref("browser.smartwindow.apiKey", "");
+pref("browser.smartwindow.endpoint", "");
+
 // Dev tools always available
 pref("devtools.selfxss.count", 5);
