@@ -47,10 +47,50 @@ void HTMLPeltElement::RegisterWithPeltRegistry() {
   GetMarkup(false, svgSource);
   if (svgSource.IsEmpty()) return;
 
-  // LEPUS: Scale/slice parsing disabled for crash debugging.
-  // All pelts use stretch mode for now.
+  // Parse scale mode from attribute
+  nsAutoString scaleStr;
+  GetAttr(nsGkAtoms::scale, scaleStr);
   PeltScaleMode scaleMode = PeltScaleMode::Stretch;
+  if (scaleStr.EqualsLiteral("9-slice")) {
+    scaleMode = PeltScaleMode::NineSlice;
+  } else if (scaleStr.EqualsLiteral("contain")) {
+    scaleMode = PeltScaleMode::Contain;
+  } else if (scaleStr.EqualsLiteral("cover")) {
+    scaleMode = PeltScaleMode::Cover;
+  }
+
+  // Parse slice values using string-based GetAttribute (not atom-based GetAttr)
+  // to avoid potential atom mismatch with hyphenated attribute names.
   PeltSliceValues slices;
+  nsAutoString val;
+  GetAttribute(u"slice-top"_ns, val);
+  if (!val.IsEmpty()) {
+    nsresult rv;
+    slices.top = val.ToFloat(&rv);
+    if (NS_FAILED(rv)) slices.top = 0.0f;
+    val.Truncate();
+  }
+  GetAttribute(u"slice-right"_ns, val);
+  if (!val.IsEmpty()) {
+    nsresult rv;
+    slices.right = val.ToFloat(&rv);
+    if (NS_FAILED(rv)) slices.right = 0.0f;
+    val.Truncate();
+  }
+  GetAttribute(u"slice-bottom"_ns, val);
+  if (!val.IsEmpty()) {
+    nsresult rv;
+    slices.bottom = val.ToFloat(&rv);
+    if (NS_FAILED(rv)) slices.bottom = 0.0f;
+    val.Truncate();
+  }
+  GetAttribute(u"slice-left"_ns, val);
+  if (!val.IsEmpty()) {
+    nsresult rv;
+    slices.left = val.ToFloat(&rv);
+    if (NS_FAILED(rv)) slices.left = 0.0f;
+    val.Truncate();
+  }
   PeltContentInsets insets;
 
   RefPtr<nsAtom> idAtom = NS_Atomize(id);

@@ -57,9 +57,9 @@ bool nsDisplayPelt::CreateWebRenderCommands(
   // Detect interactive state for state variant rendering
   nsAutoCString currentState = GetCurrentState();
 
-  // 9-slice disabled pending crash investigation — always stretch for now
-  bool useNineSlice = false;
-  PeltSliceValues slices;
+  // Check for 9-slice scaling
+  bool useNineSlice = (mDef->ScaleMode() == PeltScaleMode::NineSlice);
+  const PeltSliceValues& slices = mDef->Slices();
 
   uint8_t* pixels = nullptr;
   size_t pixelsLen = 0;
