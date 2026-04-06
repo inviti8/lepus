@@ -195,6 +195,11 @@ pub extern "C" fn vello_pelt_render_pixels(
     height: u32,
     state: *const u8,
     state_len: usize,
+    nine_slice: bool,
+    slice_top: f32,
+    slice_right: f32,
+    slice_bottom: f32,
+    slice_left: f32,
     out_pixels: *mut *mut u8,
     out_pixels_len: *mut usize,
 ) -> bool {
@@ -219,38 +224,43 @@ pub extern "C" fn vello_pelt_render_pixels(
         "default"
     };
 
-    // Use the renderer's state filtering + rendering pipeline
-    let mut renderer = match renderer::PeltRenderer::new() {
-        Ok(r) => r,
-        Err(_) => return false,
+    // Filter to matching state group
+    let filtered = renderer::filter_svg_state(svg_str, state_str);
+
+    // Resolve theme tokens
+    let resolved = if filtered.contains("var(--pelt-") {
+        crate::token_resolver::resolve_tokens(&filtered, &std::collections::HashMap::new())
+    } else {
+        filtered
     };
 
-    match renderer.render(svg_str, width, height, 1.0, state_str) {
-        Ok(handle) => {
-            // The renderer cached the pixels — retrieve them
-            let cache_key = cache::TextureCacheKey {
-                svg_hash: {
-                    let mut h = std::collections::hash_map::DefaultHasher::new();
-                    svg_str.hash(&mut h);
-                    std::hash::Hasher::finish(&h)
-                },
-                width,
-                height,
-                state: state_str.to_string(),
-                token_hash: 0,
-            };
-            if let Some(cached) = renderer.cache.get_texture(&cache_key) {
-                let mut data = cached.pixels.clone();
-                let len = data.len();
-                let ptr = data.as_mut_ptr();
-                std::mem::forget(data);
-                unsafe {
-                    *out_pixels = ptr;
-                    *out_pixels_len = len;
-                }
-                return true;
+    // Build slice insets if 9-slice mode
+    let slices = if nine_slice {
+        Some(nine_slice::SliceInsets {
+            top: slice_top,
+            right: slice_right,
+            bottom: slice_bottom,
+            left: slice_left,
+        })
+    } else {
+        None
+    };
+
+    // Render SVG to pixels
+    let result = renderer::render_svg_to_pixels(
+        &resolved, width, height, slices.as_ref(),
+    );
+
+    match result {
+        Ok(mut data) => {
+            let len = data.len();
+            let ptr = data.as_mut_ptr();
+            std::mem::forget(data);
+            unsafe {
+                *out_pixels = ptr;
+                *out_pixels_len = len;
             }
-            false
+            true
         }
         Err(_) => false,
     }

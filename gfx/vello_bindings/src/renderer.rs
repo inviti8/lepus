@@ -68,7 +68,7 @@ impl PeltRenderer {
 /// Filter SVG to only include the matching data-pelt-state group.
 /// If no matching state group exists, falls back to "default", then
 /// to the full SVG unfiltered.
-fn filter_svg_state(svg_source: &str, state: &str) -> String {
+pub fn filter_svg_state(svg_source: &str, state: &str) -> String {
     // If no state groups exist, return as-is
     if !svg_source.contains("data-pelt-state") {
         return svg_source.to_string();
@@ -133,7 +133,7 @@ fn extract_defs(svg_source: &str) -> Option<String> {
 /// Render SVG source string to BGRA pixel buffer using resvg (CPU).
 /// If `slice_insets` is provided, renders at viewBox size then composites
 /// via 9-slice scaling to the target dimensions.
-fn render_svg_to_pixels(
+pub fn render_svg_to_pixels(
     svg_source: &str,
     width: u32,
     height: u32,

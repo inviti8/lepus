@@ -12,11 +12,14 @@
 #include "mozilla/layers/WebRenderBridgeChild.h"
 #include "nsPresContext.h"
 
-// LEPUS: Rust FFI for resvg SVG rasterization with state filtering
+// LEPUS: Rust FFI for resvg SVG rasterization with state and 9-slice
 extern "C" {
 bool vello_pelt_render_pixels(const uint8_t* svg_data, size_t svg_len,
                               uint32_t width, uint32_t height,
                               const uint8_t* state, size_t state_len,
+                              bool nine_slice, float slice_top,
+                              float slice_right, float slice_bottom,
+                              float slice_left,
                               uint8_t** out_pixels, size_t* out_pixels_len);
 void vello_pelt_free_pixels(uint8_t* pixels, size_t len);
 }
@@ -54,6 +57,10 @@ bool nsDisplayPelt::CreateWebRenderCommands(
   // Detect interactive state for state variant rendering
   nsAutoCString currentState = GetCurrentState();
 
+  // Check for 9-slice scaling
+  bool useNineSlice = (mDef->ScaleMode() == PeltScaleMode::NineSlice);
+  const PeltSliceValues& slices = mDef->Slices();
+
   uint8_t* pixels = nullptr;
   size_t pixelsLen = 0;
   bool ok = vello_pelt_render_pixels(
@@ -61,6 +68,7 @@ bool nsDisplayPelt::CreateWebRenderCommands(
       svgUtf8.Length(), width, height,
       reinterpret_cast<const uint8_t*>(currentState.get()),
       currentState.Length(),
+      useNineSlice, slices.top, slices.right, slices.bottom, slices.left,
       &pixels, &pixelsLen);
 
   if (!ok || !pixels) {
