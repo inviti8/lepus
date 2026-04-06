@@ -130,11 +130,19 @@ pub fn composite_9slice(
         for dy in dst_y0..dst_y1 {
             for dx in dst_x0..dst_x1 {
                 // Map destination pixel back to source
-                let sx = region.src.x + (dx as f32 - region.dst.x) / region.scale_x;
-                let sy = region.src.y + (dy as f32 - region.dst.y) / region.scale_y;
+                let sx = if region.scale_x > 0.001 {
+                    region.src.x + (dx as f32 - region.dst.x) / region.scale_x
+                } else {
+                    region.src.x
+                };
+                let sy = if region.scale_y > 0.001 {
+                    region.src.y + (dy as f32 - region.dst.y) / region.scale_y
+                } else {
+                    region.src.y
+                };
 
-                let sx = (sx as u32).min(src_w - 1);
-                let sy = (sy as u32).min(src_h - 1);
+                let sx = (sx.max(0.0) as u32).min(src_w.saturating_sub(1));
+                let sy = (sy.max(0.0) as u32).min(src_h.saturating_sub(1));
 
                 let src_idx = ((sy * src_w + sx) * 4) as usize;
                 let dst_idx = ((dy * target_w + dx) * 4) as usize;

@@ -145,26 +145,32 @@ pub fn render_svg_to_pixels(
     let svg_size = tree.size();
 
     if let Some(insets) = slice_insets {
-        // 9-slice: render at viewBox size, then composite
-        let vw = svg_size.width() as u32;
-        let vh = svg_size.height() as u32;
-        if vw == 0 || vh == 0 { return Err("zero viewBox"); }
+        // 9-slice: render at viewBox size, then composite.
+        // Fall back to stretch if anything goes wrong.
+        let vw = svg_size.width().ceil() as u32;
+        let vh = svg_size.height().ceil() as u32;
 
-        let mut src_pixmap = resvg::tiny_skia::Pixmap::new(vw, vh)
-            .ok_or("src pixmap failed")?;
-        resvg::render(&tree, resvg::tiny_skia::Transform::default(), &mut src_pixmap.as_mut());
+        if vw >= 4 && vh >= 4 && width >= 4 && height >= 4
+            && insets.top + insets.bottom < vh as f32
+            && insets.left + insets.right < vw as f32
+        {
+            if let Some(mut src_pixmap) = resvg::tiny_skia::Pixmap::new(vw, vh) {
+                resvg::render(&tree, resvg::tiny_skia::Transform::default(), &mut src_pixmap.as_mut());
 
-        // Convert RGBA -> BGRA
-        let mut src_data = src_pixmap.take();
-        for pixel in src_data.chunks_exact_mut(4) {
-            pixel.swap(0, 2);
+                let mut src_data = src_pixmap.take();
+                for pixel in src_data.chunks_exact_mut(4) {
+                    pixel.swap(0, 2);
+                }
+
+                return Ok(crate::nine_slice::composite_9slice(
+                    &src_data, vw, vh, width, height, insets,
+                ));
+            }
         }
+        // Fall through to stretch mode
+    }
 
-        // Composite 9 slices
-        Ok(crate::nine_slice::composite_9slice(
-            &src_data, vw, vh, width, height, insets,
-        ))
-    } else {
+    {
         // Stretch: render directly at target size
         let mut pixmap = resvg::tiny_skia::Pixmap::new(width, height)
             .ok_or("pixmap creation failed")?;
