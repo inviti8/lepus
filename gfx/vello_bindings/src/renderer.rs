@@ -2,12 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//! Pelt renderer — parses SVG via usvg and extracts visual properties.
-//!
-//! Current implementation: uses usvg to parse SVG into a resolved tree,
-//! then extracts the dominant fill color and returns RGBA pixel data.
-//!
-//! Next step: use vello_svg to build a Vello scene and render via GPU.
+//! Pelt renderer — rasterizes SVG to pixel buffers via resvg/tiny-skia.
 
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
@@ -35,17 +30,15 @@ impl PeltRenderer {
         state: &str,
     ) -> Result<PeltTextureHandle, &'static str> {
         let svg_hash = hash_string(svg_source);
-        let token_hash = 0u64;
 
         let cache_key = TextureCacheKey {
             svg_hash,
             width,
             height,
             state: state.to_string(),
-            token_hash,
+            token_hash: 0,
         };
 
-        // Check cache
         if let Some(cached) = self.cache.get_texture(&cache_key) {
             return Ok(PeltTextureHandle {
                 id: cached.id,
@@ -54,89 +47,38 @@ impl PeltRenderer {
             });
         }
 
-        // Parse SVG with usvg
-        let (r, g, b, a) = parse_svg_fill(svg_source);
-
-        // Generate pixel buffer with the extracted fill color
-        let pixel_count = (width * height) as usize;
-        let mut pixels = Vec::with_capacity(pixel_count * 4);
-        for _ in 0..pixel_count {
-            pixels.push(r);
-            pixels.push(g);
-            pixels.push(b);
-            pixels.push(a);
-        }
+        // Render SVG to pixel buffer via resvg
+        let pixels = render_svg_to_pixels(svg_source, width, height)?;
 
         let id = self.cache.put_texture(cache_key, "", width, height, pixels);
-
         Ok(PeltTextureHandle { id, width, height })
     }
 }
 
-/// Parse SVG with usvg and extract the dominant fill color.
-/// Returns (R, G, B, A) as u8 values.
-fn parse_svg_fill(svg_source: &str) -> (u8, u8, u8, u8) {
-    let fallback = (26u8, 42u8, 26u8, 200u8);
+/// Render SVG source string to RGBA pixel buffer using resvg (CPU).
+fn render_svg_to_pixels(svg_source: &str, width: u32, height: u32) -> Result<Vec<u8>, &'static str> {
+    let tree = usvg::Tree::from_str(svg_source, &usvg::Options::default())
+        .map_err(|_| "usvg parse failed")?;
 
-    let tree = match usvg::Tree::from_str(svg_source, &usvg::Options::default()) {
-        Ok(t) => t,
-        Err(_) => return fallback,
-    };
+    let mut pixmap = resvg::tiny_skia::Pixmap::new(width, height)
+        .ok_or("pixmap creation failed")?;
 
-    // Walk the usvg tree to find the first filled shape
-    for node in tree.root().children() {
-        if let Some(color) = extract_fill_from_node(node) {
-            return color;
-        }
+    // Scale SVG to fill the target dimensions
+    let svg_size = tree.size();
+    let sx = width as f32 / svg_size.width();
+    let sy = height as f32 / svg_size.height();
+    let transform = resvg::tiny_skia::Transform::from_scale(sx, sy);
+
+    resvg::render(&tree, transform, &mut pixmap.as_mut());
+
+    // resvg outputs premultiplied RGBA. WebRender expects premultiplied BGRA.
+    let mut data = pixmap.take();
+    // Swap R and B channels (RGBA -> BGRA)
+    for pixel in data.chunks_exact_mut(4) {
+        pixel.swap(0, 2);
     }
 
-    fallback
-}
-
-fn extract_fill_from_node(node: &usvg::Node) -> Option<(u8, u8, u8, u8)> {
-    match node {
-        usvg::Node::Path(path) => {
-            if let Some(ref fill) = path.fill() {
-                return extract_color_from_paint(&fill.paint(), fill.opacity());
-            }
-        }
-        usvg::Node::Group(group) => {
-            for child in group.children() {
-                if let Some(color) = extract_fill_from_node(child) {
-                    return Some(color);
-                }
-            }
-        }
-        _ => {}
-    }
-    None
-}
-
-fn extract_color_from_paint(paint: &usvg::Paint, opacity: usvg::Opacity) -> Option<(u8, u8, u8, u8)> {
-    match paint {
-        usvg::Paint::Color(color) => {
-            let a = (opacity.get() * 255.0) as u8;
-            Some((color.red, color.green, color.blue, a))
-        }
-        usvg::Paint::LinearGradient(grad) => {
-            // Use the first stop color
-            if let Some(stop) = grad.stops().first() {
-                let a = (stop.opacity().get() * opacity.get() * 255.0) as u8;
-                Some((stop.color().red, stop.color().green, stop.color().blue, a))
-            } else {
-                None
-            }
-        }
-        usvg::Paint::RadialGradient(grad) => {
-            if let Some(stop) = grad.stops().first() {
-                let a = (stop.opacity().get() * opacity.get() * 255.0) as u8;
-                Some((stop.color().red, stop.color().green, stop.color().blue, a))
-            } else {
-                None
-            }
-        }
-        usvg::Paint::Pattern(_) => None,
-    }
+    Ok(data)
 }
 
 fn hash_string(s: &str) -> u64 {

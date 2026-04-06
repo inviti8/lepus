@@ -2,8 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// LEPUS: nsDisplayPelt implementation.
-// Uses usvg (via Rust FFI) to parse SVG and extract fill colors.
+// LEPUS: nsDisplayPelt — renders SVG pelts via resvg CPU rasterization.
 
 #include "nsDisplayPelt.h"
 
@@ -11,11 +10,12 @@
 #include "Units.h"
 #include "nsPresContext.h"
 
-// LEPUS: Rust FFI for usvg-based SVG color extraction
+// LEPUS: Rust FFI for resvg SVG rasterization
 extern "C" {
-bool vello_pelt_extract_fill(const uint8_t* svg_data, size_t svg_len,
-                             uint8_t* out_r, uint8_t* out_g,
-                             uint8_t* out_b, uint8_t* out_a);
+bool vello_pelt_render_pixels(const uint8_t* svg_data, size_t svg_len,
+                              uint32_t width, uint32_t height,
+                              uint8_t** out_pixels, size_t* out_pixels_len);
+void vello_pelt_free_pixels(uint8_t* pixels, size_t len);
 }
 
 namespace mozilla {
@@ -27,7 +27,7 @@ nsDisplayPelt::nsDisplayPelt(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
 }
 
 void nsDisplayPelt::Paint(nsDisplayListBuilder* aBuilder, gfxContext* aCtx) {
-  // No-op. WebRender is always enabled in modern Firefox.
+  // No-op. WebRender is always enabled.
 }
 
 bool nsDisplayPelt::CreateWebRenderCommands(
@@ -48,18 +48,44 @@ bool nsDisplayPelt::CreateWebRenderCommands(
   uint32_t height = static_cast<uint32_t>(devRect.Height());
   if (width == 0 || height == 0) return false;
 
-  // Extract fill color from SVG via usvg (Rust FFI)
+  // Render SVG to pixel buffer via resvg
   NS_ConvertUTF16toUTF8 svgUtf8(mDef->SvgSource());
-  uint8_t r = 26, g = 42, b = 26, a = 200; // fallback
-  vello_pelt_extract_fill(
+  uint8_t* pixels = nullptr;
+  size_t pixelsLen = 0;
+  bool ok = vello_pelt_render_pixels(
       reinterpret_cast<const uint8_t*>(svgUtf8.get()),
-      svgUtf8.Length(), &r, &g, &b, &a);
+      svgUtf8.Length(), width, height, &pixels, &pixelsLen);
 
-  gfx::DeviceColor color(r / 255.0f, g / 255.0f, b / 255.0f, a / 255.0f);
+  if (!ok || !pixels) {
+    // Fallback: solid color rect
+    wr::LayoutRect wrBounds = wr::ToLayoutRect(devRect);
+    aBuilder.PushRect(wrBounds, wrBounds, false, false, false,
+                      wr::ToColorF(gfx::DeviceColor(0.1f, 0.16f, 0.1f, 0.78f)));
+    return true;
+  }
+
+  // Create WebRender image from pixel data
+  wr::ImageDescriptor descriptor(gfx::IntSize(width, height),
+                                  width * 4,
+                                  gfx::SurfaceFormat::B8G8R8A8);
+
+  // Copy pixels into a Range for WebRender
+  wr::Vec<uint8_t> wrData;
+  wrData.PushBytes(Range<uint8_t>(pixels, pixelsLen));
+
+  // Free the Rust-allocated pixel buffer
+  vello_pelt_free_pixels(pixels, pixelsLen);
+
+  // Generate a unique image key
+  wr::ImageKey key = aManager->CommandBuilder().GetImageKeyForGeneratedImage(
+      wr::GeneratedImageKey{static_cast<uint64_t>(
+          reinterpret_cast<uintptr_t>(mDef.get()))});
+
+  aResources.AddImage(key, descriptor, wrData);
 
   wr::LayoutRect wrBounds = wr::ToLayoutRect(devRect);
-  aBuilder.PushRect(wrBounds, wrBounds, false, false, false,
-                    wr::ToColorF(color));
+  aBuilder.PushImage(wrBounds, wrBounds, true, false,
+                     wr::ImageRendering::Auto, key);
 
   return true;
 }

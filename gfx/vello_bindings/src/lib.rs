@@ -183,6 +183,74 @@ pub extern "C" fn vello_pelt_invalidate(
     }
 }
 
+/// Render SVG to a BGRA pixel buffer via resvg (CPU rasterization).
+/// Caller must free the returned buffer with vello_pelt_free_pixels().
+/// Returns null on failure.
+#[no_mangle]
+pub extern "C" fn vello_pelt_render_pixels(
+    svg_data: *const u8,
+    svg_len: usize,
+    width: u32,
+    height: u32,
+    out_pixels: *mut *mut u8,
+    out_pixels_len: *mut usize,
+) -> bool {
+    if svg_data.is_null() || out_pixels.is_null() || width == 0 || height == 0 {
+        return false;
+    }
+
+    let svg_str = unsafe {
+        let slice = std::slice::from_raw_parts(svg_data, svg_len);
+        match std::str::from_utf8(slice) {
+            Ok(s) => s,
+            Err(_) => return false,
+        }
+    };
+
+    let tree = match usvg::Tree::from_str(svg_str, &usvg::Options::default()) {
+        Ok(t) => t,
+        Err(_) => return false,
+    };
+
+    let mut pixmap = match resvg::tiny_skia::Pixmap::new(width, height) {
+        Some(p) => p,
+        None => return false,
+    };
+
+    let svg_size = tree.size();
+    let sx = width as f32 / svg_size.width();
+    let sy = height as f32 / svg_size.height();
+    let transform = resvg::tiny_skia::Transform::from_scale(sx, sy);
+
+    resvg::render(&tree, transform, &mut pixmap.as_mut());
+
+    // Convert RGBA to BGRA for WebRender
+    let mut data = pixmap.take();
+    for pixel in data.chunks_exact_mut(4) {
+        pixel.swap(0, 2);
+    }
+
+    let len = data.len();
+    let ptr = data.as_mut_ptr();
+    std::mem::forget(data); // Caller frees via vello_pelt_free_pixels
+
+    unsafe {
+        *out_pixels = ptr;
+        *out_pixels_len = len;
+    }
+    true
+}
+
+/// Free a pixel buffer returned by vello_pelt_render_pixels.
+#[no_mangle]
+pub extern "C" fn vello_pelt_free_pixels(pixels: *mut u8, len: usize) {
+    if !pixels.is_null() && len > 0 {
+        unsafe {
+            let _ = Vec::from_raw_parts(pixels, len, len);
+        }
+    }
+}
+
 /// Parse SVG and extract the dominant fill color via usvg.
 /// Returns RGBA as packed u32 (0xRRGGBBAA). Returns 0 on failure.
 /// This is the lightweight path — no GPU, no texture, just color extraction.
