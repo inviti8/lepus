@@ -47,34 +47,10 @@ void HTMLPeltElement::RegisterWithPeltRegistry() {
   GetMarkup(false, svgSource);
   if (svgSource.IsEmpty()) return;
 
-  // Parse scale mode from attribute
-  nsAutoString scaleStr;
-  GetAttr(nsGkAtoms::scale, scaleStr);
+  // LEPUS: Scale/slice parsing disabled for crash debugging.
+  // All pelts use stretch mode for now.
   PeltScaleMode scaleMode = PeltScaleMode::Stretch;
-  if (scaleStr.EqualsLiteral("9-slice")) {
-    scaleMode = PeltScaleMode::NineSlice;
-  } else if (scaleStr.EqualsLiteral("contain")) {
-    scaleMode = PeltScaleMode::Contain;
-  } else if (scaleStr.EqualsLiteral("cover")) {
-    scaleMode = PeltScaleMode::Cover;
-  }
-
-  // Parse slice values (for 9-slice mode)
   PeltSliceValues slices;
-  nsAutoString val;
-  if (GetAttr(nsGkAtoms::sliceTop, val)) {
-    slices.top = val.ToFloat(nullptr);
-  }
-  if (GetAttr(nsGkAtoms::sliceRight, val)) {
-    slices.right = val.ToFloat(nullptr);
-  }
-  if (GetAttr(nsGkAtoms::sliceBottom, val)) {
-    slices.bottom = val.ToFloat(nullptr);
-  }
-  if (GetAttr(nsGkAtoms::sliceLeft, val)) {
-    slices.left = val.ToFloat(nullptr);
-  }
-
   PeltContentInsets insets;
 
   RefPtr<nsAtom> idAtom = NS_Atomize(id);
