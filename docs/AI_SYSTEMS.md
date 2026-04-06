@@ -117,10 +117,77 @@ pref("browser.ml.modelHubUrlTemplate", "");
 
 ### Phase 3: Cooperative AI Models (Long-Term)
 
-1. **Heavymeta-trained models** distributed via cooperative infrastructure
-2. **On-device creative assistance** — style suggestions, color harmonies, layout recommendations
-3. **Content understanding** — local analysis of HVYM subnet content for discovery
-4. **All inference local** — no data leaves the device
+The primary AI use case for Lepus is a **local search engine and security advisor**. The cooperative trains and publishes a specialized model that runs entirely on CPU.
+
+#### Core Function: Local Search Engine
+
+The model replaces traditional search engines (Google, Bing). When a user types a query:
+
+1. The model searches HVYM subnet content (datapods, pelt galleries, member pages)
+2. Optionally searches DNS web content via direct page fetching
+3. Reads and understands page content locally
+4. Collates results into structured, navigable summaries
+5. Presents results ranked by relevance and source trust
+
+No intermediary search service. No query data sent anywhere. The model IS the search engine.
+
+#### Core Function: Security Screening
+
+Before navigation or alongside results, the model scans page content for:
+
+- Phishing patterns (fake login forms, credential harvesting)
+- Malware indicators (suspicious scripts, drive-by downloads)
+- Deceptive UI (fake system dialogs, misleading buttons)
+- Scam patterns (urgency manipulation, too-good-to-be-true offers)
+- Trust scoring based on content analysis
+
+The model produces a trust score or warning overlay before the user commits to navigating.
+
+#### Base Model Selection
+
+The model must run on CPU at interactive speeds on modest hardware (4-core, 8-16GB RAM). Target parameter range: **1-3B parameters** in GGUF format via the Llama C++ pipeline.
+
+Candidates for the base model to fine-tune:
+
+| Model | Parameters | Strengths | Suitability |
+|-------|-----------|-----------|-------------|
+| **Phi-3-mini** | 3.8B | Strong reasoning, structured tasks | Best for search/collation |
+| **Qwen2.5** | 1.5B | Multilingual, instruction-following | Good balance of speed and capability |
+| **SmolLM2** | 1.7B | Designed for on-device | Fast, resource-efficient |
+| **TinyLlama** | 1.1B | Very fast classification | Best for security screening |
+
+A two-model approach may be optimal:
+- **Search model** (~3B): Handles query understanding, page reading, result collation
+- **Security model** (~1B): Fast binary classification (safe/unsafe) on page content
+
+#### Fine-Tuning Domains
+
+The cooperative fine-tunes on:
+
+| Domain | Training Data | Purpose |
+|--------|---------------|---------|
+| HVYM content structure | NINJS metadata, pelt schemas, datapod formats | Understand cooperative content for search |
+| Security patterns | Phishing databases, malware URL lists, scam templates | Detect malicious content |
+| Search ranking | Relevance judgments, user feedback (anonymized, local) | Rank results appropriately |
+| Web page understanding | HTML structure, content extraction, noise filtering | Read pages accurately |
+
+#### Distribution
+
+- Models published to cooperative registry (replaces Mozilla model hub)
+- Distributed as GGUF files via cooperative infrastructure
+- Signed by cooperative keys for integrity verification
+- Version-managed with automatic update checks (download only, no telemetry)
+
+#### Integration Points
+
+| Component | How the Model Integrates |
+|-----------|------------------------|
+| URL bar | Query typed → local model search → results in dropdown or new tab |
+| Page load | Content scanned by security model → trust indicator in address bar |
+| HVYM subnet | Model indexes datapod metadata for fast subnet-wide search |
+| Pelt gallery | Search pelts by visual description ("glassmorphism card with neon border") |
+
+**All inference local — no data leaves the device.**
 
 ---
 
