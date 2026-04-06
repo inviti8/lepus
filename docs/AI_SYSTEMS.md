@@ -143,49 +143,115 @@ Before navigation or alongside results, the model scans page content for:
 
 The model produces a trust score or warning overlay before the user commits to navigating.
 
-#### Base Model Selection
+#### Architecture: Two-Model System
 
-The model must run on CPU at interactive speeds on modest hardware (4-core, 8-16GB RAM). Target parameter range: **1-3B parameters** in GGUF format via the Llama C++ pipeline.
+Two separate models optimized for their specific domains. Total memory: ~1.5GB.
 
-Candidates for the base model to fine-tune:
+```
+TinyAgent-1.1B (search/agent model)
+  │  Base: raw pretrained weights, minimal alignment bias
+  │  Loaded once, stays in memory (~700MB quantized Q4)
+  │
+  ├── search-adapter.gguf (~50MB LoRA)
+  │   Trained on: query routing, tool calling, result collation
+  │   Tools: fetch_page, search_subnet, extract_content, rank_results
+  │
+  └── content-adapter.gguf (~50MB LoRA)
+      Trained on: page reading, summarization, HVYM metadata
+      Tasks: read pages, summarize, index datapods
 
-| Model | Parameters | Strengths | Suitability |
-|-------|-----------|-----------|-------------|
-| **Phi-3-mini** | 3.8B | Strong reasoning, structured tasks | Best for search/collation |
-| **Qwen2.5** | 1.5B | Multilingual, instruction-following | Good balance of speed and capability |
-| **SmolLM2** | 1.7B | Designed for on-device | Fast, resource-efficient |
-| **TinyLlama** | 1.1B | Very fast classification | Best for security screening |
+Qwen2.5-Coder-0.5B (security model)
+  │  Code-trained base — natively understands HTML/JS/CSS
+  │  Separate model (~500MB quantized Q4)
+  │  Runs first on page load (fast, blocking)
+  │
+  └── No adapter needed — prompt-engineered for security scoring
+      Input: raw HTML/JS of page
+      Output: trust score 0-100, threat indicators
+```
 
-A two-model approach may be optimal:
-- **Search model** (~3B): Handles query understanding, page reading, result collation
-- **Security model** (~1B): Fast binary classification (safe/unsafe) on page content
+**Why two models instead of one:**
+- TinyAgent excels at tool selection and function calling (routing skill)
+- Security analysis requires understanding HTML/JS structure (code skill)
+- These are fundamentally different competencies
+- A code-trained model natively reads HTML as structured input, not text
+- Forcing one model to do both would require a larger base, defeating "tiny"
+
+**Why TinyAgent for search:**
+- Specifically trained for function calling at the edge (Berkeley AI Research)
+- 1.1B model exceeds GPT-4-Turbo on tool-calling tasks (80% vs 79%)
+- ToolRAG dynamically selects the right tools per query
+- Maps directly to Lepus use case: route query → call tools → collate results
+
+**Why a code model for security:**
+- HTML/JS/CSS are code — code models understand DOM structure natively
+- Phishing detection is code analysis ("does this form POST to a suspicious domain?")
+- Malicious scripts follow recognizable code patterns
+- 0.5B is fast enough for blocking page-load analysis (~30+ tok/s on CPU)
+
+#### Bias Minimization Strategy
+
+The base model must carry as little editorial bias as possible. All "personality" and domain specialization comes from cooperative-controlled training data.
+
+**Approach:** Start from **raw pretrained weights** (before instruction tuning or RLHF alignment), then apply cooperative-controlled LoRA adapters only.
+
+| Base Option | Parameters | Why Low Bias |
+|-------------|-----------|--------------|
+| **TinyLlama-1.1B base** (not chat) | 1.1B | Trained on raw web text, no alignment applied |
+| **Pythia-1.4B (EleutherAI)** | 1.4B | Explicitly designed for research with minimal editorial filtering |
+| **Qwen2.5-1.5B base** (not instruct) | 1.5B | Raw completion model, no RLHF |
+
+Models from Big Tech (Google, Microsoft, Meta) carry their creator's alignment choices baked into base weights — content policies, topic avoidance, and editorial decisions. Raw pretrained models avoid this.
+
+The cooperative controls:
+- What training data the adapters are fine-tuned on
+- What the model considers "safe" or "unsafe" (security adapter)
+- How results are ranked and presented (search adapter)
+- What content is surfaced or de-prioritized
+
+No inherited alignment from upstream. The cooperative IS the alignment authority.
+
+**Trade-off:** Raw base models are harder to work with (they complete text, don't follow instructions). The adapter training must teach instruction-following AND task specialization simultaneously. But it gives full control over model behavior.
+
+#### LoRA Adapter Architecture
+
+Instead of loading multiple full models, the search/content functions use a single base model with swappable LoRA adapters:
+
+- **Base model** loaded once (~700MB), stays in memory
+- **Adapters** are small weight deltas (~50MB each), loaded on demand
+- **Hot-swapping** supported natively by llama.cpp (`--lora` flag)
+- Near-instant adapter switches (milliseconds)
+
+The cooperative publishes:
+- One base model GGUF (downloaded once)
+- Multiple adapter GGUFs (tiny updates, new capabilities over time)
+- Adapters signed by cooperative keys for integrity
 
 #### Fine-Tuning Domains
 
-The cooperative fine-tunes on:
-
-| Domain | Training Data | Purpose |
-|--------|---------------|---------|
-| HVYM content structure | NINJS metadata, pelt schemas, datapod formats | Understand cooperative content for search |
-| Security patterns | Phishing databases, malware URL lists, scam templates | Detect malicious content |
-| Search ranking | Relevance judgments, user feedback (anonymized, local) | Rank results appropriately |
-| Web page understanding | HTML structure, content extraction, noise filtering | Read pages accurately |
+| Adapter | Training Data | Purpose |
+|---------|---------------|---------|
+| **search** | HVYM datapod metadata, query-result pairs, tool-calling examples | Route queries, call tools, rank results |
+| **content** | Web page corpus, NINJS metadata, pelt schemas | Read pages, summarize, extract structured data |
+| **security** (separate code model) | Phishing databases, malware URL lists, scam HTML templates, safe page examples | Score page safety from raw HTML/JS |
 
 #### Distribution
 
-- Models published to cooperative registry (replaces Mozilla model hub)
+- Models and adapters published to cooperative registry
 - Distributed as GGUF files via cooperative infrastructure
 - Signed by cooperative keys for integrity verification
-- Version-managed with automatic update checks (download only, no telemetry)
+- Base model downloaded once (~700MB), adapters are small updates (~50MB)
+- Version-managed with opt-in update checks (no telemetry)
 
 #### Integration Points
 
-| Component | How the Model Integrates |
-|-----------|------------------------|
-| URL bar | Query typed → local model search → results in dropdown or new tab |
-| Page load | Content scanned by security model → trust indicator in address bar |
-| HVYM subnet | Model indexes datapod metadata for fast subnet-wide search |
-| Pelt gallery | Search pelts by visual description ("glassmorphism card with neon border") |
+| Component | Model | How It Integrates |
+|-----------|-------|-------------------|
+| **URL bar** | TinyAgent + search adapter | Query → tool calls → results in dropdown or new tab |
+| **Page load** | Qwen-Coder security model | HTML scanned → trust score in address bar (blocking) |
+| **HVYM subnet** | TinyAgent + search adapter | Indexes datapod metadata for subnet-wide search |
+| **Content reading** | TinyAgent + content adapter | Summarize page, extract key information |
+| **Pelt gallery** | TinyAgent + content adapter | Search pelts by description |
 
 **All inference local — no data leaves the device.**
 
