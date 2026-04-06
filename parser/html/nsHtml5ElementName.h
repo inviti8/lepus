@@ -125,6 +125,11 @@ class nsHtml5ElementName {
     hashes = nsHtml5ElementName::ELEMENT_HASHES;
     int32_t index = levelOrderBinarySearch(hashes, hash);
     if (index < 0) {
+      // LEPUS: Fallback for elements not in the hash table
+      if (length == 4 && buf[0] == 'p' && buf[1] == 'e' &&
+          buf[2] == 'l' && buf[3] == 't') {
+        return ELT_PELT;
+      }
       return nullptr;
     } else {
       nsHtml5ElementName* elementName =
@@ -383,6 +388,7 @@ class nsHtml5ElementName {
   static nsHtml5ElementName* ELT_RADIALGRADIENT;
   static nsHtml5ElementName* ELT_SELECT;
   static nsHtml5ElementName* ELT_SLOT;
+  static nsHtml5ElementName* ELT_PELT;  // LEPUS
   static nsHtml5ElementName* ELT_SCRIPT;
   static nsHtml5ElementName* ELT_TFOOT;
   static nsHtml5ElementName* ELT_TEXT;

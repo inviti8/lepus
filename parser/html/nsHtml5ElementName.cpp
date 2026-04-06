@@ -257,6 +257,7 @@ nsHtml5ElementName* nsHtml5ElementName::ELT_RECT = nullptr;
 nsHtml5ElementName* nsHtml5ElementName::ELT_RADIALGRADIENT = nullptr;
 nsHtml5ElementName* nsHtml5ElementName::ELT_SELECT = nullptr;
 nsHtml5ElementName* nsHtml5ElementName::ELT_SLOT = nullptr;
+nsHtml5ElementName* nsHtml5ElementName::ELT_PELT = nullptr;  // LEPUS
 nsHtml5ElementName* nsHtml5ElementName::ELT_SCRIPT = nullptr;
 nsHtml5ElementName* nsHtml5ElementName::ELT_TFOOT = nullptr;
 nsHtml5ElementName* nsHtml5ElementName::ELT_TEXT = nullptr;
@@ -1012,6 +1013,9 @@ void nsHtml5ElementName::initializeStatics() {
   ELT_SLOT = new nsHtml5ElementName(
       nsGkAtoms::slot, nsGkAtoms::slot, NS_NewHTMLSlotElement,
       NS_NewSVGUnknownElement, nsHtml5TreeBuilder::OTHER);
+  ELT_PELT = new nsHtml5ElementName(  // LEPUS
+      nsGkAtoms::pelt, nsGkAtoms::pelt, NS_NewHTMLPeltElement,
+      NS_NewSVGUnknownElement, nsHtml5TreeBuilder::OTHER);
   ELT_SCRIPT = new nsHtml5ElementName(
       nsGkAtoms::script, nsGkAtoms::script, NS_NewHTMLScriptElement,
       NS_NewSVGScriptElement, nsHtml5TreeBuilder::SCRIPT | SPECIAL);
@@ -1065,7 +1069,7 @@ void nsHtml5ElementName::initializeStatics() {
       NS_NewSVGUnknownElement,
       nsHtml5TreeBuilder::TBODY_OR_THEAD_OR_TFOOT | SPECIAL | FOSTER_PARENTING |
           OPTIONAL_END_TAG);
-  ELEMENT_NAMES = new nsHtml5ElementName*[207];
+  ELEMENT_NAMES = new nsHtml5ElementName*[208];  // LEPUS: +1 for ELT_PELT
   ELEMENT_NAMES[0] = ELT_FIGCAPTION;
   ELEMENT_NAMES[1] = ELT_CITE;
   ELEMENT_NAMES[2] = ELT_FRAMESET;
@@ -1273,6 +1277,7 @@ void nsHtml5ElementName::initializeStatics() {
   ELEMENT_NAMES[204] = ELT_FILTER;
   ELEMENT_NAMES[205] = ELT_FEGAUSSIANBLUR;
   ELEMENT_NAMES[206] = ELT_MARKER;
+  ELEMENT_NAMES[207] = ELT_PELT;  // LEPUS
 }
 
 void nsHtml5ElementName::releaseStatics() {
@@ -1471,6 +1476,7 @@ void nsHtml5ElementName::releaseStatics() {
   delete ELT_RADIALGRADIENT;
   delete ELT_SELECT;
   delete ELT_SLOT;
+  delete ELT_PELT;  // LEPUS
   delete ELT_SCRIPT;
   delete ELT_TFOOT;
   delete ELT_TEXT;
