@@ -752,6 +752,14 @@ title {
   display: none;
 }
 
+/* LEPUS: Force restyle on hover/active/focus for pelted elements so
+   nsDisplayPelt re-renders with the matching state variant SVG. */
+[pelt]:hover,
+[pelt]:active,
+[pelt]:focus {
+  outline-offset: 0;
+}
+
 area {
   /* Don't give it frames other than its imageframe */
   display: none !important;

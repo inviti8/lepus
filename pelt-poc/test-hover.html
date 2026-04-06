@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Lepus Pelt — Hover State Test</title>
+  <style>
+    body { background: #0a0e14; color: #e8e0d4; font-family: system-ui, sans-serif; padding: 40px; }
+    .btn { padding: 16px 40px; font-size: 16px; font-weight: 600; color: #e8e0d4; border: none; cursor: pointer; background: none; margin: 12px; }
+    .card { padding: 32px; margin: 20px 0; min-height: 100px; }
+    h2 { border-bottom: 1px solid #222; padding-bottom: 8px; }
+    #status { background: #000; color: #0f0; font-family: monospace; padding: 12px; font-size: 12px; border: 1px solid #222; margin: 16px 0; }
+
+    /* LEPUS: Force display list rebuild on hover/active for pelted elements.
+       Without this, Gecko skips restyle since no CSS changes on hover,
+       and nsDisplayPelt never re-renders with the new state. */
+    [pelt]:hover { outline: 0px solid transparent; }
+    [pelt]:active { outline: 0px solid transparent; }
+  </style>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('pelt').forEach(pelt => {
+        const svg = pelt.querySelector('svg');
+        if (svg) pelt.setAttribute('data-pelt-svg', svg.outerHTML);
+      });
+    });
+  </script>
+</head>
+<body>
+
+<h1>Pelt Hover State Test</h1>
+<p>Hover over the buttons and cards to see state changes.</p>
+<div id="status"></div>
+
+<!-- Button with hover + active states -->
+<pelt id="state-btn">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 64">
+    <g data-pelt-state="default">
+      <rect width="240" height="64" rx="8" fill="#1a1a2e"/>
+      <rect width="240" height="64" rx="8" fill="none" stroke="#e94560" stroke-width="2"/>
+    </g>
+    <g data-pelt-state="hover">
+      <rect width="240" height="64" rx="8" fill="#16213e"/>
+      <rect width="240" height="64" rx="8" fill="none" stroke="#e94560" stroke-width="3"/>
+      <rect width="240" height="64" rx="10" fill="none" stroke="rgba(233,69,96,0.3)" stroke-width="6"/>
+    </g>
+    <g data-pelt-state="active">
+      <rect width="240" height="64" rx="8" fill="#0f3460"/>
+      <rect width="240" height="64" rx="8" fill="none" stroke="#ff6b81" stroke-width="3"/>
+    </g>
+  </svg>
+</pelt>
+
+<!-- Card with hover state -->
+<pelt id="state-card">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200">
+    <defs>
+      <linearGradient id="sc-default" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="rgba(255,255,255,0.06)"/>
+        <stop offset="100%" stop-color="rgba(255,255,255,0.01)"/>
+      </linearGradient>
+      <linearGradient id="sc-hover" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="rgba(255,255,255,0.15)"/>
+        <stop offset="100%" stop-color="rgba(255,255,255,0.05)"/>
+      </linearGradient>
+    </defs>
+    <g data-pelt-state="default">
+      <rect width="400" height="200" rx="16" fill="url(#sc-default)"/>
+      <rect width="400" height="200" rx="16" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+    </g>
+    <g data-pelt-state="hover">
+      <rect width="400" height="200" rx="16" fill="url(#sc-hover)"/>
+      <rect width="400" height="200" rx="16" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="1.5"/>
+      <line x1="20" y1="0.5" x2="380" y2="0.5" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+    </g>
+  </svg>
+</pelt>
+
+<!-- Green/red color change for obvious testing -->
+<pelt id="obvious-btn">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 64">
+    <g data-pelt-state="default">
+      <rect width="240" height="64" rx="12" fill="#2d5a27"/>
+      <rect width="240" height="64" rx="12" fill="none" stroke="#5a7247" stroke-width="2"/>
+    </g>
+    <g data-pelt-state="hover">
+      <rect width="240" height="64" rx="12" fill="#8b2252"/>
+      <rect width="240" height="64" rx="12" fill="none" stroke="#e94560" stroke-width="3"/>
+    </g>
+    <g data-pelt-state="active">
+      <rect width="240" height="64" rx="12" fill="#e94560"/>
+      <rect width="240" height="64" rx="12" fill="none" stroke="#ffffff" stroke-width="2"/>
+    </g>
+  </svg>
+</pelt>
+
+<h2>Buttons</h2>
+<p>These should change color on hover (different SVG state groups render).</p>
+<div>
+  <button pelt="state-btn" class="btn">Neon State Button</button>
+  <button pelt="obvious-btn" class="btn">Green→Pink on Hover</button>
+  <button pelt="obvious-btn" class="btn">Another Obvious</button>
+</div>
+
+<h2>Cards</h2>
+<p>These should brighten on hover.</p>
+<div pelt="state-card" class="card">
+  <h3>Hover Card A</h3>
+  <p>Should get brighter border and gradient on hover.</p>
+</div>
+<div pelt="state-card" class="card">
+  <h3>Hover Card B</h3>
+  <p>Same pelt, same hover behavior.</p>
+</div>
+
+<script>
+  const pelts = document.querySelectorAll('pelt');
+  const pelted = document.querySelectorAll('[pelt]');
+  const withStates = [...pelts].filter(p => p.innerHTML.includes('data-pelt-state')).length;
+  document.getElementById('status').textContent =
+    `${pelts.length} pelts | ${pelted.length} pelted elements | ${withStates} with state variants`;
+</script>
+
+</body>
+</html>
