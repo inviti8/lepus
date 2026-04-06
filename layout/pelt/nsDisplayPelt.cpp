@@ -12,10 +12,11 @@
 #include "mozilla/layers/WebRenderBridgeChild.h"
 #include "nsPresContext.h"
 
-// LEPUS: Rust FFI for resvg SVG rasterization
+// LEPUS: Rust FFI for resvg SVG rasterization with state filtering
 extern "C" {
 bool vello_pelt_render_pixels(const uint8_t* svg_data, size_t svg_len,
                               uint32_t width, uint32_t height,
+                              const uint8_t* state, size_t state_len,
                               uint8_t** out_pixels, size_t* out_pixels_len);
 void vello_pelt_free_pixels(uint8_t* pixels, size_t len);
 }
@@ -50,11 +51,17 @@ bool nsDisplayPelt::CreateWebRenderCommands(
 
   // Render SVG to BGRA pixel buffer via resvg
   NS_ConvertUTF16toUTF8 svgUtf8(mDef->SvgSource());
+  // Detect interactive state for state variant rendering
+  nsAutoCString currentState = GetCurrentState();
+
   uint8_t* pixels = nullptr;
   size_t pixelsLen = 0;
   bool ok = vello_pelt_render_pixels(
       reinterpret_cast<const uint8_t*>(svgUtf8.get()),
-      svgUtf8.Length(), width, height, &pixels, &pixelsLen);
+      svgUtf8.Length(), width, height,
+      reinterpret_cast<const uint8_t*>(currentState.get()),
+      currentState.Length(),
+      &pixels, &pixelsLen);
 
   if (!ok || !pixels) {
     // Fallback: green rect

@@ -29,6 +29,7 @@ mod token_resolver;
 mod transitions;
 
 use std::collections::HashMap;
+use std::hash::Hash;
 use std::sync::Mutex;
 
 use renderer::PeltRenderer;
@@ -184,14 +185,16 @@ pub extern "C" fn vello_pelt_invalidate(
 }
 
 /// Render SVG to a BGRA pixel buffer via resvg (CPU rasterization).
+/// Supports state filtering via data-pelt-state groups.
 /// Caller must free the returned buffer with vello_pelt_free_pixels().
-/// Returns null on failure.
 #[no_mangle]
 pub extern "C" fn vello_pelt_render_pixels(
     svg_data: *const u8,
     svg_len: usize,
     width: u32,
     height: u32,
+    state: *const u8,
+    state_len: usize,
     out_pixels: *mut *mut u8,
     out_pixels_len: *mut usize,
 ) -> bool {
@@ -207,38 +210,50 @@ pub extern "C" fn vello_pelt_render_pixels(
         }
     };
 
-    let tree = match usvg::Tree::from_str(svg_str, &usvg::Options::default()) {
-        Ok(t) => t,
+    let state_str = if !state.is_null() && state_len > 0 {
+        unsafe {
+            let slice = std::slice::from_raw_parts(state, state_len);
+            std::str::from_utf8(slice).unwrap_or("default")
+        }
+    } else {
+        "default"
+    };
+
+    // Use the renderer's state filtering + rendering pipeline
+    let mut renderer = match renderer::PeltRenderer::new() {
+        Ok(r) => r,
         Err(_) => return false,
     };
 
-    let mut pixmap = match resvg::tiny_skia::Pixmap::new(width, height) {
-        Some(p) => p,
-        None => return false,
-    };
-
-    let svg_size = tree.size();
-    let sx = width as f32 / svg_size.width();
-    let sy = height as f32 / svg_size.height();
-    let transform = resvg::tiny_skia::Transform::from_scale(sx, sy);
-
-    resvg::render(&tree, transform, &mut pixmap.as_mut());
-
-    // Convert RGBA to BGRA for WebRender
-    let mut data = pixmap.take();
-    for pixel in data.chunks_exact_mut(4) {
-        pixel.swap(0, 2);
+    match renderer.render(svg_str, width, height, 1.0, state_str) {
+        Ok(handle) => {
+            // The renderer cached the pixels — retrieve them
+            let cache_key = cache::TextureCacheKey {
+                svg_hash: {
+                    let mut h = std::collections::hash_map::DefaultHasher::new();
+                    svg_str.hash(&mut h);
+                    std::hash::Hasher::finish(&h)
+                },
+                width,
+                height,
+                state: state_str.to_string(),
+                token_hash: 0,
+            };
+            if let Some(cached) = renderer.cache.get_texture(&cache_key) {
+                let mut data = cached.pixels.clone();
+                let len = data.len();
+                let ptr = data.as_mut_ptr();
+                std::mem::forget(data);
+                unsafe {
+                    *out_pixels = ptr;
+                    *out_pixels_len = len;
+                }
+                return true;
+            }
+            false
+        }
+        Err(_) => false,
     }
-
-    let len = data.len();
-    let ptr = data.as_mut_ptr();
-    std::mem::forget(data); // Caller frees via vello_pelt_free_pixels
-
-    unsafe {
-        *out_pixels = ptr;
-        *out_pixels_len = len;
-    }
-    true
 }
 
 /// Free a pixel buffer returned by vello_pelt_render_pixels.

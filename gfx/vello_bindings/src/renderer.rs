@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 //! Pelt renderer — rasterizes SVG to pixel buffers via resvg/tiny-skia.
+//! Supports state variants by extracting the matching data-pelt-state group.
 
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
@@ -47,15 +48,81 @@ impl PeltRenderer {
             });
         }
 
-        // Render SVG to pixel buffer via resvg
-        let pixels = render_svg_to_pixels(svg_source, width, height)?;
+        // Filter SVG to matching state group, then render
+        let filtered = filter_svg_state(svg_source, state);
+        let pixels = render_svg_to_pixels(&filtered, width, height)?;
 
         let id = self.cache.put_texture(cache_key, "", width, height, pixels);
         Ok(PeltTextureHandle { id, width, height })
     }
 }
 
-/// Render SVG source string to RGBA pixel buffer using resvg (CPU).
+/// Filter SVG to only include the matching data-pelt-state group.
+/// If no matching state group exists, falls back to "default", then
+/// to the full SVG unfiltered.
+fn filter_svg_state(svg_source: &str, state: &str) -> String {
+    // If no state groups exist, return as-is
+    if !svg_source.contains("data-pelt-state") {
+        return svg_source.to_string();
+    }
+
+    // Try to extract the matching state group
+    if let Some(group) = extract_state_group(svg_source, state) {
+        return wrap_in_svg(svg_source, &group);
+    }
+
+    // Fall back to default state
+    if state != "default" {
+        if let Some(group) = extract_state_group(svg_source, "default") {
+            return wrap_in_svg(svg_source, &group);
+        }
+    }
+
+    // No state groups found — use full SVG
+    svg_source.to_string()
+}
+
+/// Extract the content of <g data-pelt-state="STATE">...</g>
+fn extract_state_group(svg_source: &str, state: &str) -> Option<String> {
+    let open_tag = format!("data-pelt-state=\"{}\"", state);
+    let start = svg_source.find(&open_tag)?;
+
+    // Find the opening > of this <g> tag
+    let tag_start = svg_source[..start].rfind('<')?;
+    let content_start = svg_source[start..].find('>')? + start + 1;
+
+    // Find the matching </g> — simple approach: find next </g>
+    // after the content start. This works for non-nested state groups.
+    let content_end = svg_source[content_start..].find("</g>")?;
+    let content = &svg_source[content_start..content_start + content_end];
+
+    Some(content.to_string())
+}
+
+/// Wrap state group content in the original SVG's root element,
+/// preserving <defs> (gradients, filters, patterns).
+fn wrap_in_svg(svg_source: &str, group_content: &str) -> String {
+    // Extract everything from <svg ...> to just after the first >
+    let svg_open_end = match svg_source.find('>') {
+        Some(pos) => pos + 1,
+        None => return svg_source.to_string(),
+    };
+    let svg_open = &svg_source[..svg_open_end];
+
+    // Extract <defs>...</defs> if present
+    let defs = extract_defs(svg_source).unwrap_or_default();
+
+    format!("{}\n{}\n{}\n</svg>", svg_open, defs, group_content)
+}
+
+/// Extract the <defs>...</defs> section from SVG source.
+fn extract_defs(svg_source: &str) -> Option<String> {
+    let start = svg_source.find("<defs")?;
+    let end = svg_source.find("</defs>")? + "</defs>".len();
+    Some(svg_source[start..end].to_string())
+}
+
+/// Render SVG source string to BGRA pixel buffer using resvg (CPU).
 fn render_svg_to_pixels(svg_source: &str, width: u32, height: u32) -> Result<Vec<u8>, &'static str> {
     let tree = usvg::Tree::from_str(svg_source, &usvg::Options::default())
         .map_err(|_| "usvg parse failed")?;
@@ -63,7 +130,6 @@ fn render_svg_to_pixels(svg_source: &str, width: u32, height: u32) -> Result<Vec
     let mut pixmap = resvg::tiny_skia::Pixmap::new(width, height)
         .ok_or("pixmap creation failed")?;
 
-    // Scale SVG to fill the target dimensions
     let svg_size = tree.size();
     let sx = width as f32 / svg_size.width();
     let sy = height as f32 / svg_size.height();
@@ -71,9 +137,8 @@ fn render_svg_to_pixels(svg_source: &str, width: u32, height: u32) -> Result<Vec
 
     resvg::render(&tree, transform, &mut pixmap.as_mut());
 
-    // resvg outputs premultiplied RGBA. WebRender expects premultiplied BGRA.
+    // Convert premultiplied RGBA to BGRA for WebRender
     let mut data = pixmap.take();
-    // Swap R and B channels (RGBA -> BGRA)
     for pixel in data.chunks_exact_mut(4) {
         pixel.swap(0, 2);
     }
