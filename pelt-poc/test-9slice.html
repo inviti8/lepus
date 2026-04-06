@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Lepus Pelt — 9-Slice Scaling Test</title>
+  <style>
+    body { background: #0a0e14; color: #e8e0d4; font-family: system-ui, sans-serif; padding: 40px; }
+    h2 { border-bottom: 1px solid #222; padding-bottom: 8px; margin-top: 40px; }
+    .row { display: flex; gap: 20px; flex-wrap: wrap; margin: 20px 0; align-items: flex-start; }
+    .box { padding: 16px; color: #e8e0d4; font-size: 13px; }
+    .label { font-size: 11px; color: #888; margin-top: 4px; }
+    [pelt]:hover { outline: 0px solid transparent; }
+  </style>
+</head>
+<body>
+
+<h1>9-Slice Scaling Test</h1>
+<p>Compare stretch (default) vs 9-slice at different element sizes. Corners should stay crisp with 9-slice.</p>
+
+<!-- Stretch pelt (default — no 9-slice) -->
+<pelt id="stretch-card">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 200">
+    <rect width="300" height="200" rx="24" fill="#1a2a1a"/>
+    <rect width="300" height="200" rx="24" fill="none" stroke="#5a7247" stroke-width="3"/>
+    <circle cx="24" cy="24" r="8" fill="#5a7247"/>
+    <circle cx="276" cy="24" r="8" fill="#5a7247"/>
+    <circle cx="24" cy="176" r="8" fill="#5a7247"/>
+    <circle cx="276" cy="176" r="8" fill="#5a7247"/>
+  </svg>
+</pelt>
+
+<!-- 9-slice pelt — same SVG but with slice parameters -->
+<pelt id="sliced-card" scale="9-slice"
+      slice-top="32" slice-right="32" slice-bottom="32" slice-left="32">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 200">
+    <rect width="300" height="200" rx="24" fill="#1a2a1a"/>
+    <rect width="300" height="200" rx="24" fill="none" stroke="#5a7247" stroke-width="3"/>
+    <circle cx="24" cy="24" r="8" fill="#5a7247"/>
+    <circle cx="276" cy="24" r="8" fill="#5a7247"/>
+    <circle cx="24" cy="176" r="8" fill="#5a7247"/>
+    <circle cx="276" cy="176" r="8" fill="#5a7247"/>
+  </svg>
+</pelt>
+
+<!-- Neon border — stretch vs 9-slice -->
+<pelt id="neon-stretch">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 80">
+    <rect width="240" height="80" rx="12" fill="#0f0f1e"/>
+    <rect width="240" height="80" rx="12" fill="none" stroke="#e94560" stroke-width="2"/>
+  </svg>
+</pelt>
+
+<pelt id="neon-sliced" scale="9-slice"
+      slice-top="16" slice-right="16" slice-bottom="16" slice-left="16">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 80">
+    <rect width="240" height="80" rx="12" fill="#0f0f1e"/>
+    <rect width="240" height="80" rx="12" fill="none" stroke="#e94560" stroke-width="2"/>
+  </svg>
+</pelt>
+
+<h2>1. Stretch vs 9-Slice — Green Card</h2>
+<p>Same SVG at different widths. Stretch distorts corners; 9-slice preserves them.</p>
+
+<h3>Stretch (default)</h3>
+<div class="row">
+  <div>
+    <div pelt="stretch-card" class="box" style="width:200px; height:120px;">200x120</div>
+    <div class="label">Small</div>
+  </div>
+  <div>
+    <div pelt="stretch-card" class="box" style="width:400px; height:120px;">400x120</div>
+    <div class="label">Wide</div>
+  </div>
+  <div>
+    <div pelt="stretch-card" class="box" style="width:600px; height:120px;">600x120</div>
+    <div class="label">Very wide</div>
+  </div>
+  <div>
+    <div pelt="stretch-card" class="box" style="width:200px; height:300px;">200x300</div>
+    <div class="label">Tall</div>
+  </div>
+</div>
+
+<h3>9-Slice (slice=32 on all sides)</h3>
+<div class="row">
+  <div>
+    <div pelt="sliced-card" class="box" style="width:200px; height:120px;">200x120</div>
+    <div class="label">Small</div>
+  </div>
+  <div>
+    <div pelt="sliced-card" class="box" style="width:400px; height:120px;">400x120</div>
+    <div class="label">Wide</div>
+  </div>
+  <div>
+    <div pelt="sliced-card" class="box" style="width:600px; height:120px;">600x120</div>
+    <div class="label">Very wide</div>
+  </div>
+  <div>
+    <div pelt="sliced-card" class="box" style="width:200px; height:300px;">200x300</div>
+    <div class="label">Tall</div>
+  </div>
+</div>
+
+<h2>2. Neon Border — Stretch vs 9-Slice</h2>
+<p>Border thickness and corner radius should stay consistent with 9-slice.</p>
+
+<h3>Stretch</h3>
+<div class="row">
+  <div>
+    <div pelt="neon-stretch" class="box" style="width:150px; height:50px;">150x50</div>
+    <div class="label">Small</div>
+  </div>
+  <div>
+    <div pelt="neon-stretch" class="box" style="width:400px; height:50px;">400x50</div>
+    <div class="label">Wide</div>
+  </div>
+  <div>
+    <div pelt="neon-stretch" class="box" style="width:600px; height:100px;">600x100</div>
+    <div class="label">Very wide + tall</div>
+  </div>
+</div>
+
+<h3>9-Slice (slice=16 on all sides)</h3>
+<div class="row">
+  <div>
+    <div pelt="neon-sliced" class="box" style="width:150px; height:50px;">150x50</div>
+    <div class="label">Small</div>
+  </div>
+  <div>
+    <div pelt="neon-sliced" class="box" style="width:400px; height:50px;">400x50</div>
+    <div class="label">Wide</div>
+  </div>
+  <div>
+    <div pelt="neon-sliced" class="box" style="width:600px; height:100px;">600x100</div>
+    <div class="label">Very wide + tall</div>
+  </div>
+</div>
+
+</body>
+</html>
