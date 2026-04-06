@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Lepus Pelt — No JS Bridge Test</title>
+  <style>
+    body { background: #0a0e14; color: #e8e0d4; font-family: system-ui, sans-serif; padding: 40px; }
+    .card { padding: 24px; margin: 20px 0; min-height: 100px; }
+    #status { background: #000; color: #0f0; font-family: monospace; padding: 12px; font-size: 12px; border: 1px solid #222; margin: 16px 0; }
+    [pelt]:hover { outline: 0px solid transparent; }
+    [pelt]:active { outline: 0px solid transparent; }
+  </style>
+  <!-- NO JS BRIDGE SCRIPT — pelt should work natively now -->
+</head>
+<body>
+
+<h1>No JS Bridge Test</h1>
+<p>If this works, &lt;pelt&gt; is recognized as HTMLPeltElement by the HTML5 parser.</p>
+<div id="status"></div>
+
+<pelt id="native-card">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200">
+    <defs>
+      <linearGradient id="nc-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="rgba(90,114,71,0.4)"/>
+        <stop offset="100%" stop-color="rgba(26,42,26,0.9)"/>
+      </linearGradient>
+    </defs>
+    <rect width="400" height="200" rx="16" fill="url(#nc-grad)"/>
+    <rect width="400" height="200" rx="16" fill="none" stroke="rgba(90,114,71,0.3)" stroke-width="1.5"/>
+  </svg>
+</pelt>
+
+<pelt id="native-btn">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60">
+    <rect width="200" height="60" rx="8" fill="#2d5a27"/>
+    <rect width="200" height="60" rx="8" fill="none" stroke="#5a7247" stroke-width="2"/>
+  </svg>
+</pelt>
+
+<div pelt="native-card" class="card">
+  <h2>Native Pelt Card</h2>
+  <p>This should render the green gradient SVG without any JavaScript.</p>
+</div>
+
+<button pelt="native-btn" style="padding:12px 32px; font-size:16px; color:#e8e0d4; border:none; cursor:pointer; background:none;">
+  Native Pelt Button
+</button>
+
+<script>
+  const pelt = document.querySelector('pelt');
+  const status = document.getElementById('status');
+  status.textContent = `Constructor: ${pelt?.constructor.name} | ` +
+    `Has .src property: ${'src' in (pelt || {})} | ` +
+    `Has data-pelt-svg: ${pelt?.hasAttribute('data-pelt-svg')}`;
+</script>
+
+</body>
+</html>
