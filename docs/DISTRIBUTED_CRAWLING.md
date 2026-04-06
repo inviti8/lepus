@@ -238,15 +238,81 @@ Trust indicators:
   ⚠️     = Content from non-member (DNS web, unverified)
 ```
 
-## Privacy Properties
+## Privacy Architecture
+
+### The Core Principle: Index Content, Not Behavior
+
+The distributed index describes **content** (which is already public), never **users** (who browsed what, when, or why).
+
+### What IS in an Index Entry
+
+All of this is already public information about the **content and its author**:
+
+```
+{
+  cid: "QmXx...",              ← Content hash (public — anyone can fetch this)
+  title: "Art Guide",          ← Extracted from the content itself
+  description: "...",          ← Extracted from the content itself
+  keywords: ["art", "ipfs"],   ← Extracted from the content itself
+  author_pubkey: "GALICE...",  ← The AUTHOR's key (they published it publicly)
+  commitment_score: 0.87,      ← From Soroban (public on-chain data)
+  content_type: "article",     ← Structural classification
+  timestamp: 1775000000        ← When the CONTENT was published (not when it was browsed)
+}
+```
+
+### What is NEVER in an Index Entry
+
+| Data | Status | Reason |
+|------|--------|--------|
+| Who browsed the content | **Never recorded** | Index describes content, not viewers |
+| When someone browsed it | **Never recorded** | Timestamp is content publication, not access |
+| What search query led to it | **Never recorded** | Queries are local-only, never transmitted |
+| Which node contributed the entry | **Never recorded** | Entries are unsigned by default |
+| Browser fingerprint | **Never recorded** | No device/session data in entries |
+| IP address of viewer | **Never recorded** | Tunnel relay hides viewer IP |
+| Browsing sequence/history | **Never recorded** | No temporal user behavior captured |
+| Frequency of access | **Never recorded** | No view counts, no popularity-by-access |
+
+### Index Contribution Modes
+
+Users choose their participation level:
+
+| Mode | What Happens | Privacy Level |
+|------|-------------|---------------|
+| **Off** (default for new users) | Browser builds local index only. Nothing published. | Maximum — no data leaves device |
+| **Anonymous** | Index entries published to IPFS without any signature. No way to link entries to the contributing node. | High — content metadata shared, contributor unknown |
+| **Signed** (cooperative members) | Index entries signed with member key. Builds member reputation for ranking. | Moderate — member voluntarily associates with indexing activity |
+
+**Default is Off.** Users opt in to contributing. The browser works fully without contributing — it just consumes the index others have built.
+
+### Why Even Anonymous Contributions Can't Be De-Anonymized
+
+1. **No IP in entries** — published to IPFS, which is content-addressed (no origin server)
+2. **No timing correlation** — entries don't record when they were created by the contributor
+3. **No sequence** — entries are independent, no chain linking one contributor's activity
+4. **Content is already public** — the entry contains only information derivable from the public content itself. Anyone who fetches the same CID could create the identical entry.
+5. **Deduplication** — if 100 nodes browse the same page, only one index entry exists (same CID = same entry). No way to know which of the 100 created it.
+
+### Threat Model
+
+| Threat | Mitigation |
+|--------|-----------|
+| **Adversary monitors IPFS pubsub for new index entries** | Anonymous mode: entries unsigned. Timing: entries batched and published at random intervals, not immediately after browsing. |
+| **Adversary correlates index entries with known browsing patterns** | Entries contain only content metadata (already public). No user-specific data to correlate. |
+| **Cooperative operator analyzes signed entries** | Signed mode is opt-in and voluntary. Members choosing to sign understand they're publicly contributing. Off and Anonymous modes reveal nothing. |
+| **Traffic analysis of tunnel connections** | Tunnel relay sees connections but not content (E2E encryption). Index entries published separately from browsing, through different channels. |
+
+### Summary
 
 | Property | How It's Preserved |
 |----------|-------------------|
 | Search queries | Never leave the device. TinyAgent runs locally. |
-| Browsing history | Index entries contain content metadata, not who browsed it. |
-| Index contributions | Published under member's key (opt-in). Anonymous contribution mode possible. |
-| Content fetches | Routed through tunnel relay (IP hidden). |
+| Browsing history | Never recorded. Index describes content, not viewers. |
+| Index contributions | Off by default. Anonymous mode available. Signed mode is opt-in. |
+| Content fetches | Routed through tunnel relay (IP hidden from content server). |
 | Ranking computation | Entirely local. No "phone home" for results. |
+| Contributor identity | Anonymous by default. IPFS content-addressing has no origin. |
 
 ## Implementation Phases
 
