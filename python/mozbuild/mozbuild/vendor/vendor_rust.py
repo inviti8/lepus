@@ -346,6 +346,7 @@ Please commit or stash these changes before vendoring, or re-run with `--ignore-
             "jxl_simd",
             "jxl_transforms",
             "subtle",
+            "tiny-skia",  # LEPUS: resvg CPU rasterizer
             "tiny-skia-path",  # LEPUS: usvg dependency
             "uritemplate-next",
         ],
