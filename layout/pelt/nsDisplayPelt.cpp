@@ -72,15 +72,12 @@ bool nsDisplayPelt::CreateWebRenderCommands(
                                   width * 4,
                                   gfx::SurfaceFormat::B8G8R8A8);
 
-  // Copy pixels into WebRender data
-  wr::Vec<uint8_t> wrData;
-  wrData.PushBytes(Range<uint8_t>(pixels, pixelsLen));
+  // Add image to WebRender resources directly from pixel buffer
+  Range<uint8_t> pixelRange(pixels, pixels + pixelsLen);
+  aResources.AddImage(key, descriptor, pixelRange);
 
   // Free the Rust-allocated pixel buffer
   vello_pelt_free_pixels(pixels, pixelsLen);
-
-  // Add image to WebRender resources
-  aResources.AddImage(key, descriptor, wrData);
 
   // Push image display item
   wr::LayoutRect wrBounds = wr::ToLayoutRect(devRect);
