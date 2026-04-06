@@ -8,35 +8,53 @@ Low-level reference for every class, struct, function, and method in the pelt sy
 
 ```
 HTML5 Parser creates <pelt> as HTMLUnknownElement
-  |  (nsHtml5ElementName hash table does not include "pelt")
-  |  Element is display:none, children (SVG) are parsed normally
+  |  Element is display:none, children (SVG) parsed normally
+  v
+DOMContentLoaded JS bridge script
+  |  Serializes each <pelt>'s child <svg> outerHTML
+  |  Stores as data-pelt-svg attribute on the <pelt> element
   v
 Page renders, element with pelt="X" reaches painting
   |
   v
 nsIFrame::DisplayBorderBackgroundOutline (layout/generic/nsIFrame.cpp)
   |  Detects pelt="X" attribute on element
-  |  Calls PeltRegistry::GetOrCreate()->Lookup(X)
-  |  On cache miss: lazy registration — finds <pelt id="X"> in document,
-  |  creates PeltDefinition with placeholder SVG, registers it
+  |  PeltRegistry::GetOrCreate()->Lookup(X)
+  |  On cache miss: reads data-pelt-svg from <pelt id="X">,
+  |  creates PeltDefinition with full SVG source, registers it
   v
 PeltRegistry (layout/pelt/)
   |  Stores PeltDefinition keyed by nsAtom ID
   v
 nsDisplayPelt (layout/pelt/)
   |  Appended to BorderBackground display list
-  |  CreateWebRenderCommands() pushes placeholder colored rect
-  |  (Vello FFI stubbed — real GPU rendering when deps are vendored)
+  |  GetCurrentState() detects hover/active/focus/disabled
+  |  Calls vello_pelt_render_pixels() Rust FFI with state
   v
-WebRender composites colored rect behind element content
+Rust FFI (gfx/vello_bindings/)
+  |  filter_svg_state() extracts matching <g data-pelt-state> group
+  |  Preserves <defs> (gradients, filters, patterns)
+  |  usvg::Tree::from_str() parses filtered SVG
+  |  resvg::render() rasterizes to BGRA pixel buffer via tiny-skia
+  v
+nsDisplayPelt::CreateWebRenderCommands()
+  |  Gets ImageKey via WrBridge()->GetNextImageKey()
+  |  Pushes pixels via aResources.AddImage()
+  |  Pushes image via aBuilder.PushImage()
+  v
+WebRender composites SVG image behind element content
 ```
+
+**Hover/active/focus state changes:** The UA stylesheet (`html.css`) includes
+`[pelt]:hover/:active/:focus` rules that force a restyle, triggering display
+list rebuild so `nsDisplayPelt` re-renders with the matching state variant.
 
 **Note on HTML5 parser:** The `<pelt>` tag is registered in `nsHTMLTagList.inc`
 (legacy parser) and has a full `HTMLPeltElement` C++ class with WebIDL bindings.
 However, the HTML5 parser (`nsHtml5ElementName.cpp`) uses an auto-generated
-hash table from Java and creates `<pelt>` as `HTMLUnknownElement`. The lazy
-registration in `nsIFrame.cpp` bridges this gap. Full HTML5 parser integration
-requires regenerating the hash table from the Java source.
+hash table from Java and creates `<pelt>` as `HTMLUnknownElement`. A JS bridge
+script serializes the SVG to `data-pelt-svg` attribute. Full HTML5 parser
+integration requires regenerating the hash table (`parser/html/java/README.txt`).
 
 ---
 
@@ -198,8 +216,8 @@ Custom display item that renders a pelt texture in place of CSS background/borde
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
-| `Paint()` | `void Paint(nsDisplayListBuilder* aBuilder, gfxContext* aCtx)` | No-op. WebRender is always enabled in modern Firefox. |
-| `CreateWebRenderCommands()` | `bool CreateWebRenderCommands(wr::DisplayListBuilder&, wr::IpcResourceUpdateQueue&, const StackingContextHelper&, layers::RenderRootStateManager*, nsDisplayListBuilder*)` | Primary render path. Converts bounds via `LayoutDevicePixel::FromAppUnits()`. Currently pushes a placeholder dark green solid rect via `PushRect()` (6 args: bounds, clip, backfaceVisible, forceAA, checkerboard, color). Vello FFI calls are stubbed out until Rust deps are vendored. |
+| `Paint()` | `void Paint(nsDisplayListBuilder* aBuilder, gfxContext* aCtx)` | No-op. WebRender is always enabled. |
+| `CreateWebRenderCommands()` | `bool CreateWebRenderCommands(wr::DisplayListBuilder&, wr::IpcResourceUpdateQueue&, const StackingContextHelper&, layers::RenderRootStateManager*, nsDisplayListBuilder*)` | Primary render path. Converts bounds via `LayoutDevicePixel::FromAppUnits()`. Calls `GetCurrentState()` to detect hover/active/focus. Calls `vello_pelt_render_pixels()` Rust FFI which parses SVG via usvg, filters to matching state group, and rasterizes via resvg/tiny-skia to BGRA pixels. Creates `ImageKey` via `aManager->WrBridge()->GetNextImageKey()`, pushes pixels via `aResources.AddImage(key, descriptor, Range)`, renders via `aBuilder.PushImage()`. Falls back to green `PushRect` on failure. |
 | `GetBounds()` | `nsRect GetBounds(nsDisplayListBuilder*, bool* aSnap) const` | Returns the frame's ink overflow rect plus reference frame offset. |
 
 ### Private Methods
@@ -237,11 +255,14 @@ Top-level FFI entry points for the Vello rendering pipeline. All `#[no_mangle] p
 
 | Function | Signature | Description |
 |----------|-----------|-------------|
-| `vello_pelt_init()` | `-> bool` | Creates the global `PeltRenderer` instance. Call once during compositor startup. |
-| `vello_pelt_shutdown()` | `()` | Destroys the renderer. Call during compositor teardown. |
-| `vello_pelt_render()` | `(svg_data, svg_len, width, height, dpr, state, state_len, tokens_json, tokens_len, out_handle) -> bool` | Main render entry point. Resolves tokens, renders via Vello, returns texture handle. |
-| `vello_pelt_release_texture()` | `(handle)` | Frees a rendered texture from cache. |
-| `vello_pelt_invalidate()` | `(pelt_id, pelt_id_len)` | Evicts all cached textures for a pelt. Called when a pelt definition changes. |
+| `vello_pelt_init()` | `-> bool` | Creates the global `PeltRenderer` instance. |
+| `vello_pelt_shutdown()` | `()` | Destroys the renderer. |
+| `vello_pelt_render()` | `(svg_data, svg_len, width, height, dpr, state, state_len, tokens_json, tokens_len, out_handle) -> bool` | Full render via PeltRenderer (cached). |
+| `vello_pelt_render_pixels()` | `(svg_data, svg_len, width, height, state, state_len, out_pixels, out_pixels_len) -> bool` | **Primary FFI used by nsDisplayPelt.** Parses SVG via usvg, filters to matching state group, rasterizes via resvg to BGRA pixel buffer. Caller frees with `vello_pelt_free_pixels()`. |
+| `vello_pelt_free_pixels()` | `(pixels, len)` | Free pixel buffer from `vello_pelt_render_pixels()`. |
+| `vello_pelt_extract_fill()` | `(svg_data, svg_len, out_r, out_g, out_b, out_a) -> bool` | Lightweight: extract dominant fill color only (no pixel render). |
+| `vello_pelt_release_texture()` | `(handle)` | Frees a cached texture handle. |
+| `vello_pelt_invalidate()` | `(pelt_id, pelt_id_len)` | Evicts all cached textures for a pelt. |
 
 ### Internal Functions
 
@@ -267,10 +288,18 @@ Top-level FFI entry points for the Vello rendering pipeline. All `#[no_mangle] p
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
-| `new()` | `-> Result<Self, &'static str>` | Creates renderer. Will initialize wgpu device/queue when dependencies are vendored. |
-| `render()` | `(&mut self, svg_source: &str, width: u32, height: u32, _dpr: f32, state: &str) -> Result<PeltTextureHandle, &'static str>` | Checks L2 cache, on miss: hashes SVG, creates cache key, renders to pixel buffer, stores in cache. Currently produces placeholder solid color. With Vello: usvg parse -> state filter -> vello_svg scene -> GPU render. |
+| `new()` | `-> Result<Self, &'static str>` | Creates renderer with empty cache. |
+| `render()` | `(&mut self, svg_source, width, height, _dpr, state) -> Result<PeltTextureHandle, &'static str>` | Checks cache. On miss: filters SVG to matching state group via `filter_svg_state()`, renders via `render_svg_to_pixels()` (usvg + resvg), caches result. |
 
 ### Internal Functions
+
+| Function | Signature | Description |
+|----------|-----------|-------------|
+| `filter_svg_state()` | `(svg_source: &str, state: &str) -> String` | Extracts `<g data-pelt-state="STATE">` content. Falls back to "default", then full SVG. Preserves `<defs>`. |
+| `extract_state_group()` | `(svg_source: &str, state: &str) -> Option<String>` | String scan for matching state group content. |
+| `wrap_in_svg()` | `(svg_source: &str, group_content: &str) -> String` | Wraps extracted group in original SVG root + defs. |
+| `extract_defs()` | `(svg_source: &str) -> Option<String>` | Extracts `<defs>...</defs>` section. |
+| `render_svg_to_pixels()` | `(svg_source: &str, width: u32, height: u32) -> Result<Vec<u8>, &'static str>` | Parses via `usvg::Tree::from_str()`, rasterizes via `resvg::render()` with scale transform, converts RGBA→BGRA. |
 
 | Function | Signature | Description |
 |----------|-----------|-------------|
@@ -487,7 +516,7 @@ Top-level FFI entry points for the Vello rendering pipeline. All `#[no_mangle] p
 | `dom/html/nsGenericHTMLElement.h` | `NS_DECLARE_NS_NEW_HTML_ELEMENT(Pelt)` | `// LEPUS` |
 | `dom/html/moz.build` | Added HTMLPeltElement.h/.cpp | `# LEPUS` |
 | `dom/webidl/moz.build` | Added HTMLPeltElement.webidl | `# LEPUS` |
-| `layout/style/res/html.css` | Added `pelt` to `display: none` rule | `/* LEPUS */` |
+| `layout/style/res/html.css` | Added `pelt` to `display: none` rule. Added `[pelt]:hover/:active/:focus` restyle triggers. | `/* LEPUS */` |
 | `layout/painting/nsDisplayItemTypesList.inc` | `DECLARE_DISPLAY_ITEM_TYPE(PELT, TYPE_IS_CONTENTFUL)` | `// LEPUS` |
 | `xpcom/ds/StaticAtoms.py` | Added `pelt`, `pelt-hover`, `pelt-active`, `pelt-focus`, `pelt-disabled`, `pelt-checked`, `slice-top`, `slice-right`, `slice-bottom`, `slice-left` atoms | `# LEPUS` |
 | `layout/generic/nsIFrame.cpp` | Pelt attribute check + lazy registration in `DisplayBorderBackgroundOutline()`. Includes `PeltRegistry.h` and `nsDisplayPelt.h`. | `// LEPUS:` |

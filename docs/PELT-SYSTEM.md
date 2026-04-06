@@ -125,10 +125,12 @@ Override via CSS custom properties:
 
 ```
 HTMLPeltElement (dom/html/)     — Parses <pelt>, registers with PeltRegistry
+JS bridge script               — Serializes <pelt> child SVG to data-pelt-svg attribute
+nsIFrame (layout/generic/)     — Detects pelt="" attr, lazy-registers with PeltRegistry
 PeltRegistry (layout/pelt/)    — Singleton store of PeltDefinition objects
-nsDisplayPelt (layout/pelt/)   — Display item, calls Vello FFI
-vello_bindings (gfx/)          — Rust: SVG -> usvg -> Vello scene -> GPU texture
-WebRender                      — Composites pelt texture behind element content
+nsDisplayPelt (layout/pelt/)   — Display item, detects hover/active/focus state
+vello_bindings (gfx/)          — Rust: filter state group -> usvg parse -> resvg rasterize
+WebRender                      — Composites rasterized SVG image behind element content
 ```
 
 ## Code Locations
@@ -140,7 +142,8 @@ WebRender                      — Composites pelt texture behind element conten
 | Link handler | `dom/pelt/PeltLinkHandler.h/.cpp` |
 | Registry | `layout/pelt/PeltRegistry.h/.cpp` |
 | Display item | `layout/pelt/nsDisplayPelt.h/.cpp` |
-| Vello FFI | `gfx/vello_bindings/src/lib.rs` |
+| Vello/resvg FFI | `gfx/vello_bindings/src/lib.rs` |
+| SVG renderer | `gfx/vello_bindings/src/renderer.rs` |
 | Token resolver | `gfx/vello_bindings/src/token_resolver.rs` |
 | 9-slice | `gfx/vello_bindings/src/nine_slice.rs` |
 | Cache | `gfx/vello_bindings/src/cache.rs` |
