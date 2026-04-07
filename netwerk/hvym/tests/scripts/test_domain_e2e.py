@@ -117,18 +117,16 @@ META_REGISTRY_SOURCE = "GCKF63SHPP3I2HVJY3E5ZXCBBNBF4H7D3OKCG6547SO7VRJFKQDLPS64
 # because it's still in development -- see docs/NAME-REGISTRY-CONTRACT.md).
 FALLBACK_NAMEREG = "CC3X4H2D5X6VINLWG4FRHXNTJSDIS357NDHZD6D3IVGLRKURAGNGA4GM"
 
-# The roster contract the LIVE tunnler at tunnel.hvym.link actually checks
-# against. This DIFFERS from the canonical roster ID published in
-# pintheon_contracts/deployments.json (CCG3LT5S...) and from the meta-registry's
-# answer for "hvym_roster". The tunnler's deploy was hardcoded with CC4AWAEY5...
-# (see hvym_tunnler/DEPLOY.md line 143). Until the cooperative reconciles which
-# is canonical, we MUST use the tunnler's contract or auth fails with
-# "Not a roster member" -- see docs/E2E_DOMAIN_TEST.md section on roster drift.
-TUNNLER_ROSTER_ID = os.environ.get(
-    "TUNNLER_ROSTER_CONTRACT_ID",
-    "CC4AWAEY5UMWYGI5WZIFG4EQZVVQMPZFFBVX4JOLISLDWZ5G4H4EDTAJ",
-)
-CANONICAL_ROSTER = "CCG3LT5SHVQ2QLCFZYS3WXMNQFQ4GTGVPXDTIPL4FT2MBVADVJLUTQBK"
+# Canonical roster fallback used when the mainnet meta-registry is unreachable.
+# Mirrors heavymeta_collective/config.py::_CONTRACTS_FALLBACK['testnet']['hvym_roster'].
+# The tunnler at tunnel.hvym.link resolves the same address dynamically from
+# the meta-registry at startup, so we should agree by default.
+FALLBACK_ROSTER = "CCG3LT5SHVQ2QLCFZYS3WXMNQFQ4GTGVPXDTIPL4FT2MBVADVJLUTQBK"
+
+# Optional emergency override -- pin a specific roster contract ignoring
+# whatever the meta-registry says. Use only if the tunnler has been pinned
+# to a non-canonical contract and we need to talk to it anyway.
+ROSTER_OVERRIDE = os.environ.get("TUNNLER_ROSTER_CONTRACT_ID")
 
 # How long to wait after a fresh roster join for the tunnler's poller to
 # ingest the event from chain. The tunnler polls every 30s by default
@@ -244,14 +242,14 @@ def start_local_server(port: int) -> HTTPServer:
 
 
 def resolve_contract_ids(results: TestResult) -> Tuple[str, str]:
-    """Look up the name-registry contract ID via the on-chain mainnet
-    meta-registry, fall back to hardcoded ID on failure. ALWAYS use the
-    tunnler's hardcoded roster ID -- the meta-registry's answer for
-    'hvym_roster' is informational only because the live tunnler is wired
-    to a non-canonical contract (see TUNNLER_ROSTER_ID comment above)."""
+    """Look up roster + name-registry contract IDs via the on-chain mainnet
+    meta-registry, fall back to hardcoded testnet IDs on failure. The tunnler
+    at tunnel.hvym.link does the same dynamic resolution at startup, so we
+    should agree by default. Mirrors
+    heavymeta_collective/config.py::_load_contracts_from_registry."""
     log.info("--- Phase 0.0.a: Contract address lookup ---")
     namereg_id = FALLBACK_NAMEREG
-    canonical_roster_via_meta = None
+    roster_id = FALLBACK_ROSTER
     try:
         meta = MetaRegistryClient(
             contract_id=META_REGISTRY_ID,
@@ -259,23 +257,16 @@ def resolve_contract_ids(results: TestResult) -> Tuple[str, str]:
             network_passphrase=META_REGISTRY_PASSPHRASE,
         )
         net = MetaNetwork(MetaNetworkKind.Testnet)
-        # Informational: what does the meta-registry think the canonical
-        # roster is? We don't use it, but we want to flag drift if it
-        # disagrees with what the tunnler actually checks.
         try:
-            canonical_roster_via_meta = meta.get_contract_id(
+            roster_id = meta.get_contract_id(
                 name=b"hvym_roster", network=net, source=META_REGISTRY_SOURCE,
             ).result().address
-            results.ok(
-                "meta-registry hvym_roster",
-                f"canonical={short(canonical_roster_via_meta)} (informational)",
-            )
+            results.ok("meta-registry hvym_roster", f"-> {short(roster_id)}")
         except Exception as e:
             results.ok(
                 "meta-registry hvym_roster",
-                f"unregistered ({type(e).__name__})",
+                f"unregistered ({type(e).__name__}); fallback {short(FALLBACK_ROSTER)}",
             )
-        # Authoritative: name-registry lookup, fall back to hardcoded.
         try:
             namereg_id = meta.get_contract_id(
                 name=b"hvym_name_registry", network=net, source=META_REGISTRY_SOURCE,
@@ -292,35 +283,42 @@ def resolve_contract_ids(results: TestResult) -> Tuple[str, str]:
             f"unreachable ({type(e).__name__}); using fallbacks",
         )
 
-    # The tunnler's roster is what we MUST use, regardless of what the
-    # meta-registry or pintheon_contracts/deployments.json say.
-    if canonical_roster_via_meta and canonical_roster_via_meta != TUNNLER_ROSTER_ID:
+    # Optional emergency override (TUNNLER_ROSTER_CONTRACT_ID env var) wins
+    # over the meta-registry. Logged as a warning so the drift stays visible.
+    if ROSTER_OVERRIDE and ROSTER_OVERRIDE != roster_id:
         log.warning(
-            "  ROSTER DRIFT: meta-registry canonical=%s but tunnler uses %s",
-            short(canonical_roster_via_meta), short(TUNNLER_ROSTER_ID),
+            "  ROSTER OVERRIDE: env var TUNNLER_ROSTER_CONTRACT_ID=%s "
+            "supersedes meta-registry answer %s",
+            short(ROSTER_OVERRIDE), short(roster_id),
         )
-        log.warning(
-            "  Using tunnler's roster (%s) for is_member/join. "
-            "See docs/E2E_DOMAIN_TEST.md section on roster drift.",
-            short(TUNNLER_ROSTER_ID),
-        )
-    elif TUNNLER_ROSTER_ID != CANONICAL_ROSTER:
-        log.warning(
-            "  Note: TUNNLER_ROSTER_ID=%s differs from pintheon_contracts canonical %s. "
-            "Using the tunnler's contract.",
-            short(TUNNLER_ROSTER_ID), short(CANONICAL_ROSTER),
-        )
+        roster_id = ROSTER_OVERRIDE
 
-    return TUNNLER_ROSTER_ID, namereg_id
+    return roster_id, namereg_id
 
 
 # ── Phase 0.0.b/c — Tester key selection + roster enrollment ────────────────
 
 
-def pick_tester_key(roster: RosterClient, env: dict[str, str], results: TestResult) -> Keypair:
+def pick_tester_key(
+    roster: RosterClient,
+    env: dict[str, str],
+    results: TestResult,
+    force_key: Optional[int] = None,
+) -> Keypair:
     """Scan STELLAR_SECRET_KEY_1/2/3 from .env, return the first that's already
-    on the roster. If none are, return key 1 so the caller can enroll it."""
+    on the roster. If none are, return key 1 so the caller can enroll it.
+    When force_key is set, return that specific key regardless of membership
+    (useful when an enrolled key is in a stuck state on the tunnler)."""
     log.info("--- Phase 0.0.b: Selecting tester key ---")
+
+    if force_key is not None:
+        secret = env.get(f"STELLAR_SECRET_KEY_{force_key}")
+        if not secret:
+            raise RuntimeError(f"--force-key {force_key} but STELLAR_SECRET_KEY_{force_key} not in .env")
+        kp = Keypair.from_secret(secret)
+        results.ok(f"force key{force_key}", f"{short(kp.public_key)} (forced via CLI)")
+        return kp
+
     for i in (1, 2, 3):
         secret = env.get(f"STELLAR_SECRET_KEY_{i}")
         if not secret:
@@ -790,7 +788,7 @@ async def main_async(args: argparse.Namespace) -> int:
 
     # Phase 0.0.b — pick a tester key
     try:
-        tester_kp = pick_tester_key(roster, env, results)
+        tester_kp = pick_tester_key(roster, env, results, force_key=args.force_key)
     except RuntimeError as e:
         log.error(str(e))
         return 2
@@ -902,6 +900,10 @@ def parse_args() -> argparse.Namespace:
     p.add_argument(
         "--skip-roster", action="store_true",
         help="Fail instead of enrolling in roster (use when the tester key should already be a member)",
+    )
+    p.add_argument(
+        "--force-key", type=int, choices=[1, 2, 3], default=None,
+        help="Force a specific STELLAR_SECRET_KEY_N from .env, ignoring auto-selection",
     )
     return p.parse_args()
 
