@@ -107,6 +107,7 @@ export class UrlbarInput extends HTMLElement {
             flex="1"
             pageproxystate="invalid">
         <moz-urlbar-slot name="remote-control-box"> </moz-urlbar-slot>
+        <moz-urlbar-slot name="subnet-switcher"> </moz-urlbar-slot>
         <toolbarbutton id="urlbar-searchmode-switcher"
                        class="searchmode-switcher chromeclass-toolbar-additional"
                        align="center"

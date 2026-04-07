@@ -81,6 +81,11 @@ pref("browser.search.separatePrivateDefault", false);
 pref("browser.search.defaultenginename", "");
 pref("keyword.enabled", false);
 
+// Hide upstream search-mode switcher; the subnet selector lives in its slot.
+pref("browser.urlbar.searchModeSwitcher.featureGate", false);
+pref("browser.urlbar.scotchBonnet.enableOverride", false);
+pref("browser.urlbar.unifiedSearchButton.always", false);
+
 // Disable GenAI and AI Window (invasive features)
 pref("browser.ml.chat.enabled", false);
 pref("browser.ml.chat.sidebar", false);

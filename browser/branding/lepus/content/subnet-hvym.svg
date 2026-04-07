@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16">
+  <!-- LEPUS placeholder: HVYM subnet icon.
+       Replace with cooperative artwork (Stellar + hare motif). -->
+  <polygon points="8,1 14.06,4.5 14.06,11.5 8,15 1.94,11.5 1.94,4.5"
+           fill="#5a7247" stroke="#e8e0d4" stroke-width="1"/>
+  <circle cx="8" cy="8" r="2" fill="#e8e0d4"/>
+</svg>

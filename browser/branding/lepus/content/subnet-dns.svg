@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16">
+  <!-- LEPUS placeholder: DNS subnet icon.
+       Replace with final DNS/globe artwork. -->
+  <circle cx="8" cy="8" r="6.5" fill="#4a6b84" stroke="#e8e0d4" stroke-width="1"/>
+  <path d="M1.5,8 H14.5 M8,1.5 C10.5,4 10.5,12 8,14.5 M8,1.5 C5.5,4 5.5,12 8,14.5"
+        fill="none" stroke="#e8e0d4" stroke-width="0.8"/>
+</svg>

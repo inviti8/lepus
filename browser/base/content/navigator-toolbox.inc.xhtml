@@ -177,16 +177,6 @@
                    id="vertical-spacer"
                    removable="false"
                    overflows="false"/>
-      <!-- LEPUS: Subnet selector dropdown -->
-      <menulist id="subnet-selector"
-                value="dns"
-                tooltiptext="Select network namespace"
-                overflows="false">
-        <menupopup>
-          <menuitem label="hvym" value="hvym"/>
-          <menuitem label="dns" value="dns"/>
-        </menupopup>
-      </menulist>
       <toolbaritem id="urlbar-container"
                    class="urlbar-container"
                    removable="false"
@@ -199,6 +189,26 @@
               pageproxystate="invalid"
               unifiedsearchbutton-available=""
               sap-name="urlbar">
+
+          <!-- LEPUS: Subnet selector — picked up by moz-urlbar slot system.
+               menuitem-iconic + image= renders a logo next to each entry; the
+               menulist button displays the selected item's icon automatically. -->
+          <menulist id="subnet-selector"
+                    class="menulist-iconic"
+                    value="dns"
+                    tooltiptext="Select network namespace"
+                    urlbar-slot="subnet-switcher">
+            <menupopup>
+              <menuitem label="hvym"
+                        value="hvym"
+                        class="menuitem-iconic"
+                        image="chrome://branding/content/subnet-hvym.svg"/>
+              <menuitem label="dns"
+                        value="dns"
+                        class="menuitem-iconic"
+                        image="chrome://branding/content/subnet-dns.svg"/>
+            </menupopup>
+          </menulist>
 
           <box id="remote-control-box"
               align="center"

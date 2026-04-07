@@ -146,6 +146,28 @@ convert wizard-header.png -type TrueColor BMP3:wizHeader.bmp
 
 ---
 
+## Subnet Selector Icons
+
+The subnet selector dropdown inside the URL bar (where Firefox's search engine switcher used to live) shows a small logo next to each subnet entry and on the collapsed button itself. Current artwork is a **placeholder** — a flat hexagon for `hvym` and a globe-like circle for `dns` — and should be replaced with final logos.
+
+| File | Dimensions | Format | Purpose |
+|------|-----------|--------|---------|
+| `content/subnet-hvym.svg` | 16x16 viewBox | SVG | HVYM subnet (Stellar ledger namespace) |
+| `content/subnet-dns.svg` | 16x16 viewBox | SVG | DNS subnet (traditional Internet) |
+
+**Chrome URL:** `chrome://branding/content/subnet-hvym.svg`, `chrome://branding/content/subnet-dns.svg` (registered in `content/jar.mn`, `contentaccessible=yes`).
+
+**Referenced from:** `browser/base/content/navigator-toolbox.inc.xhtml` — the `<menuitem image="...">` attributes inside `#subnet-selector`.
+
+**Design guidance:**
+- Keep the artwork legible at 16x16 — it must render cleanly in the collapsed menulist button as well as the popup items.
+- Stay inside the Lepus palette: `#5a7247` organic accent, `#e8e0d4` warm off-white, `#4a6b84` muted blue, `#0a0e14` background.
+- `hvym` should feel cooperative-native (suggested: hare motif, hexagon lattice, or Stellar geometry).
+- `dns` should feel like the traditional public Internet (suggested: globe, latitude/longitude grid, or a "web" motif) to signal the subnet is *outside* the cooperative namespace.
+- Third-party subnets registered via `SubnetSelector.getSubnets()` will eventually need their own icons — follow the same `subnet-<id>.svg` naming convention so the URL is derivable from the subnet id.
+
+---
+
 ## Document Type Icons
 
 | File | Dimensions | Format | Purpose |

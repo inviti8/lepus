@@ -1321,3 +1321,52 @@ toolbar[inactive="true"] .urlbar,
     }
   }
 }
+
+/* LEPUS: Subnet selector — replaces the search engine switcher inside
+ * the address bar. Visually mirrors the searchmode-switcher box so it
+ * sits naturally between the remote-control box and the site-info icons. */
+#urlbar #subnet-selector {
+  appearance: none;
+  border: none;
+  background-color: var(--urlbar-box-bgcolor);
+  color: var(--toolbar-color);
+  border-radius: var(--urlbar-inner-border-radius);
+  margin: 0;
+  margin-inline-end: var(--urlbar-searchmodeswitcher-margin-inline-end);
+  padding-block: 0;
+  padding-inline: var(--urlbar-searchmodeswitcher-inline-padding);
+  min-height: var(--urlbar-min-height);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+#urlbar #subnet-selector:hover {
+  background-color: var(--urlbar-box-hover-bgcolor);
+}
+
+.urlbar[focused] #subnet-selector {
+  background-color: var(--urlbar-box-focus-bgcolor);
+}
+
+#urlbar #subnet-selector:focus-visible {
+  outline: var(--focus-outline);
+  outline-offset: var(--focus-outline-inset);
+}
+
+#urlbar #subnet-selector > menupopup > menuitem {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+/* Subnet-logo sizing for both the collapsed button icon and the popup items. */
+#urlbar #subnet-selector > .menulist-label-box > .menulist-icon,
+#urlbar #subnet-selector > menupopup > menuitem > .menu-iconic-left > .menu-iconic-icon {
+  width: 16px;
+  height: 16px;
+  margin-inline-end: 6px;
+}
