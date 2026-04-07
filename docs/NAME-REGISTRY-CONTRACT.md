@@ -27,12 +27,23 @@ Names are **permanent** — once claimed, a name belongs to its owner forever. T
 
 | Field | Value |
 |-------|-------|
-| **Contract ID** | `CCI2WAVXAFBMGHZRZWF5JSUB7PQ5MZSWPUZDGGEPP3B5ZM5PMOYTR4NS` |
+| **Contract ID** | `CC3X4H2D5X6VINLWG4FRHXNTJSDIS357NDHZD6D3IVGLRKURAGNGA4GM` |
 | **Network** | Stellar Testnet |
 | **RPC Endpoint** | `https://soroban-testnet.stellar.org` |
 | **Network Passphrase** | `Test SDF Network ; September 2015` |
-| **Explorer** | [Stellar Lab](https://lab.stellar.org/r/testnet/contract/CCI2WAVXAFBMGHZRZWF5JSUB7PQ5MZSWPUZDGGEPP3B5ZM5PMOYTR4NS) |
+| **Admin** | `GCEWUEU4JYP7PTBIOYAOVVOCRQUXWAVO7KCWZN2FQM6ED3MOPFB7CP4A` (set via `init` post-deploy) |
+| **Explorer** | [Stellar Lab](https://lab.stellar.org/r/testnet/contract/CC3X4H2D5X6VINLWG4FRHXNTJSDIS357NDHZD6D3IVGLRKURAGNGA4GM) |
 | **Soroban SDK** | 22.0.0 |
+| **WASM size** | 6227 bytes |
+| **Status** | In development -- not yet registered with the on-chain meta-registry, not in `pintheon_contracts/deployments.json`. Resolution by clients should hardcode this address until the contract API is finalized. |
+
+### Deployment History
+
+| Date | Contract ID | Notes |
+|---|---|---|
+| 2026-04-06 | `CC3X4H2D5X6VINLWG4FRHXNTJSDIS357NDHZD6D3IVGLRKURAGNGA4GM` | **Current.** Built from `contracts/hvym-name-registry/src/lib.rs` after replacing em-dashes with `--` in doc comments so the generated Python bindings are pure ASCII (matches `pintheon_contracts` / `heavymeta_collective` convention). Same `claim()` API as the previous deploy. |
+| 2026-04-06 | `CBKBSOBZ6CN6G6DRHMDO7RVGQTKWCMHEPFCHHD5LOULHVL243EK76WLQ` | Superseded. First deploy of the canonical no-expiration `claim()` source. Bindings against this contract triggered a cp1252 encoding bug in `stellar-contract-bindings` because the contract source had em-dashes in `///` comments. Replaced same day. |
+| Earlier | `CCI2WAVXAFBMGHZRZWF5JSUB7PQ5MZSWPUZDGGEPP3B5ZM5PMOYTR4NS` | **Stale prototype.** Older API with `register(...duration_years)` and expiration model. Still on-chain but no longer the canonical deployment. Do not use. |
 
 ---
 

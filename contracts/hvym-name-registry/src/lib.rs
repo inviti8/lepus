@@ -41,7 +41,7 @@ impl HvymNameRegistry {
         env.storage().instance().set(&DataKey::Admin, &admin);
     }
 
-    /// Claim a name in the HVYM namespace. Names are permanent — there is
+    /// Claim a name in the HVYM namespace. Names are permanent -- there is
     /// no expiration. Reclamation is handled by cooperative governance
     /// via the revoke method.
     pub fn claim(
@@ -90,7 +90,7 @@ impl HvymNameRegistry {
         record
     }
 
-    /// Look up a name. Read-only — no gas cost via simulation.
+    /// Look up a name. Read-only -- no gas cost via simulation.
     pub fn resolve(env: Env, name: String) -> Option<NameRecord> {
         let key = DataKey::Record(name.clone());
         let record: NameRecord = env.storage().persistent().get(&key)?;
@@ -194,7 +194,7 @@ impl HvymNameRegistry {
         );
     }
 
-    /// Suspend a name. Admin-only — used for cooperative governance.
+    /// Suspend a name. Admin-only -- used for cooperative governance.
     /// A suspended name can be re-claimed by calling claim() again.
     pub fn revoke(
         env: Env,

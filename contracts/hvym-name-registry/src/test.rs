@@ -58,7 +58,7 @@ fn test_claim_is_permanent() {
         &BytesN::from_array(&env, &[1u8; 32]),
     );
 
-    // Resolve should always work — no expiration
+    // Resolve should always work -- no expiration
     let resolved = client.resolve(&String::from_str(&env, "permanent"));
     assert!(resolved.is_some());
 }
@@ -172,7 +172,7 @@ fn test_duplicate_claim() {
         &BytesN::from_array(&env, &[1u8; 32]),
     );
 
-    // Should panic — name already claimed
+    // Should panic -- name already claimed
     client.claim(
         &user2,
         &String::from_str(&env, "alice"),
