@@ -15,3 +15,7 @@ EXTRA_JS_MODULES += [
 XPCOM_MANIFESTS += [
     "components.conf",
 ]
+
+BROWSER_CHROME_MANIFESTS += [
+    "tests/browser/browser.toml",
+]

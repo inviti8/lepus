@@ -76,7 +76,9 @@ const STALE_GRACE_SEC = 86400; // 24 hours
 
 const BASE32_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 
-function base32Decode(strkey) {
+// Exported below for unit tests; not part of the public API.
+
+export export function base32Decode(strkey) {
   const bytes = [];
   let buffer = 0;
   let bits = 0;
@@ -95,7 +97,7 @@ function base32Decode(strkey) {
   return new Uint8Array(bytes);
 }
 
-function decodeContractStrKey(strkey) {
+export function decodeContractStrKey(strkey) {
   const all = base32Decode(strkey);
   if (all.length !== 35) {
     throw new Error(
@@ -165,7 +167,7 @@ class XdrWriter {
   }
 }
 
-function encodeLedgerKey(contractIdBytes, recordName) {
+export function encodeLedgerKey(contractIdBytes, recordName) {
   const w = new XdrWriter();
   // LedgerKey discriminator
   w.u32(XDR_LEDGER_KEY_CONTRACT_DATA);
@@ -187,7 +189,7 @@ function encodeLedgerKey(contractIdBytes, recordName) {
   return w.toUint8Array();
 }
 
-function uint8ToBase64(arr) {
+export function uint8ToBase64(arr) {
   let bin = "";
   for (let i = 0; i < arr.length; i++) {
     bin += String.fromCharCode(arr[i]);
@@ -212,7 +214,7 @@ function uint8ToBase64(arr) {
 //     { key: { symbol: "version" },     val: { u32: 2 } },
 //   ] } } }
 
-function parseNameRecord(dataJson) {
+export function parseNameRecord(dataJson) {
   const top = dataJson?.contract_data?.val?.map;
   if (!Array.isArray(top)) {
     throw new Error("HVYM record missing contract_data.val.map");
