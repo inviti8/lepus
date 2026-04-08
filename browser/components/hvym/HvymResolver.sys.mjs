@@ -78,7 +78,7 @@ const BASE32_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 
 // Exported below for unit tests; not part of the public API.
 
-export export function base32Decode(strkey) {
+export function base32Decode(strkey) {
   const bytes = [];
   let buffer = 0;
   let bits = 0;
