@@ -4,31 +4,18 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-# LEPUS: HVYM subnet resolver, tunnel manager, and protocol handler.
-
-EXPORTS.mozilla.net += [
-    "HvymProtocolHandler.h",
-]
-
-UNIFIED_SOURCES += [
-    "HvymProtocolHandler.cpp",
-]
-
-LOCAL_INCLUDES += [
-    "/netwerk/base",
-    "/netwerk/protocol/http",
-]
-
-include("/ipc/chromium/chromium-config.mozbuild")
-
-# Uncomment once cbindgen FFI is active:
-# if CONFIG["COMPILE_ENVIRONMENT"]:
-#     CbindgenHeader(
-#         "hvym_ffi_generated.h",
-#         inputs=["/netwerk/hvym"],
-#     )
-#     EXPORTS.mozilla.net += [
-#         "!hvym_ffi_generated.h",
-#     ]
-
-FINAL_LIBRARY = "xul"
+# LEPUS: HVYM subnet build hook.
+#
+# This directory used to host a Rust crate (src/) backed by a C++
+# nsIProtocolHandler (HvymProtocolHandler.cpp/h). Neither was ever
+# linked into the build. The actual hvym:// implementation now lives
+# at browser/components/hvym/HvymProtocolHandler.sys.mjs +
+# HvymResolver.sys.mjs as pure chrome JS that talks directly to
+# Soroban RPC.
+#
+# The directory is preserved only for the Phase 0 end-to-end test
+# harness at tests/scripts/test_domain_e2e.py, which exercises the
+# full backend chain (roster enrollment, tunnel auth, name claim,
+# resolve, fetch) against live testnet infrastructure. The harness
+# is a standalone Python script run from the developer shell -- not
+# part of the build -- so this moz.build has nothing to declare.
