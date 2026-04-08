@@ -225,19 +225,15 @@ var gBrowserInit = {
 
     gURLBar.initPlaceHolder();
 
-    // LEPUS: Initialize subnet selector
+    // LEPUS: Initialize subnet selector. SubnetSelector.init(window)
+    // is self-contained: it sets defaults, wires the dropdown command
+    // listener, and registers a TabSelect listener so the dropdown
+    // visual state tracks the selected tab's per-tab subnet attribute.
     try {
       let { SubnetSelector } = ChromeUtils.importESModule(
         "resource:///modules/SubnetSelector.sys.mjs"
       );
-      SubnetSelector.init();
-      let selector = document.getElementById("subnet-selector");
-      if (selector) {
-        selector.value = SubnetSelector.currentSubnet;
-        selector.addEventListener("command", event => {
-          SubnetSelector.onSelect(event);
-        });
-      }
+      SubnetSelector.init(window);
     } catch (e) {
       console.error("LEPUS: Failed to initialize SubnetSelector:", e);
     }

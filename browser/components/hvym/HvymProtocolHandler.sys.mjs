@@ -69,6 +69,7 @@ export class HvymProtocolHandler {
       } catch (e) {
         throw Components.Exception(e.message, Cr.NS_ERROR_FAILURE);
       }
+      lazy.HvymResolver.recordResolution(uri.spec, resolvedUrl);
       const realURI = Services.io.newURI(resolvedUrl);
       const channel = Services.io.newChannelFromURIWithLoadInfo(
         realURI,
@@ -286,6 +287,7 @@ export class HvymChannel {
       return;
     }
 
+    lazy.HvymResolver.recordResolution(this.#uri.spec, resolvedUrl);
     const realURI = Services.io.newURI(resolvedUrl);
     const inner = Services.io.newChannelFromURIWithLoadInfo(
       realURI,

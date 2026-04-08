@@ -31,9 +31,13 @@
 // exact shape we need (no general-purpose XDR encoder), which keeps the
 // total module under ~300 lines and avoids vendoring stellar-sdk-js.
 
-const PREF_ACTIVE_SUBNET = "lepus.subnet.active";
 const PREF_NAMEREG_CONTRACT = "lepus.hvym.nameregistry.contract";
 const PREF_SOROBAN_RPC = "lepus.hvym.soroban.rpc";
+
+const lazy = {};
+ChromeUtils.defineESModuleGetters(lazy, {
+  SubnetSelector: "resource:///modules/SubnetSelector.sys.mjs",
+});
 
 const DEFAULT_NAMEREG_CONTRACT =
   "CC3X4H2D5X6VINLWG4FRHXNTJSDIS357NDHZD6D3IVGLRKURAGNGA4GM";
@@ -269,6 +273,29 @@ export const HvymResolver = {
   // promise -- prevents thundering-herd from rapid typing.
   _inflight: new Map(),
 
+  // Resolved HTTPS URL -> original hvym:// URI string. Used by the URL
+  // bar override (installed in init) to display "hvym://name@service"
+  // in the address bar after navigation, instead of the underlying
+  // tunnel URL the browser actually fetched. The map is populated by
+  // every successful resolve (both from _resolveAndLoad and from
+  // HvymChannel.asyncOpen), and bounded with a simple FIFO cap so it
+  // can't grow unbounded over a long session.
+  _resolvedToHvym: new Map(),
+  _resolvedToHvymCap: 256,
+
+  // Record a successful (hvym, https) pair for later URL bar substitution.
+  recordResolution(hvymUri, resolvedUrl) {
+    if (!hvymUri || !resolvedUrl) return;
+    if (this._resolvedToHvym.has(resolvedUrl)) {
+      // Refresh insertion order so the entry survives FIFO eviction.
+      this._resolvedToHvym.delete(resolvedUrl);
+    } else if (this._resolvedToHvym.size >= this._resolvedToHvymCap) {
+      const oldest = this._resolvedToHvym.keys().next().value;
+      this._resolvedToHvym.delete(oldest);
+    }
+    this._resolvedToHvym.set(resolvedUrl, hvymUri);
+  },
+
   init(win) {
     if (this._windows.has(win)) return;
     this._windows.add(win);
@@ -347,11 +374,53 @@ export const HvymResolver = {
       }
       return origFixup(uriString, params);
     };
+
+    this._installUrlBarDisplayOverride(win);
   },
 
-  get _activeSubnet() {
+  // Override gURLBar.setURI so the address bar displays the original
+  // hvym://name@service URI instead of the resolved tunnel URL after
+  // navigation. The browser still LOADS via the resolved https:// URL
+  // (so the lock icon, identity panel, principal, etc. all reflect
+  // the real connection) -- this only changes what the user sees in
+  // the address bar.
+  //
+  // The substitution table is HvymResolver._resolvedToHvym, populated
+  // by _resolveAndLoad and HvymProtocolHandler. If a setURI call comes
+  // through with a URI we don't recognize, the original setURI runs
+  // unchanged. Safe to install once per window because gURLBar is a
+  // window-scoped element.
+  _installUrlBarDisplayOverride(win) {
+    const urlBar = win.gURLBar;
+    if (!urlBar || typeof urlBar.setURI !== "function") {
+      console.warn("LEPUS HvymResolver: gURLBar.setURI not available");
+      return;
+    }
+    const origSetURI = urlBar.setURI.bind(urlBar);
+    urlBar.setURI = opts => {
+      try {
+        const incoming = opts && opts.uri;
+        if (incoming && typeof incoming.spec === "string") {
+          const hvymUriString = this._resolvedToHvym.get(incoming.spec);
+          if (hvymUriString) {
+            opts = { ...opts, uri: Services.io.newURI(hvymUriString) };
+          }
+        }
+      } catch (e) {
+        // Don't break the URL bar if substitution fails for any reason --
+        // fall through to the original call with unmodified args.
+        console.error("LEPUS HvymResolver: setURI override failed", e);
+      }
+      return origSetURI(opts);
+    };
+  },
+
+  // Read the effective subnet for the given window. Delegates to
+  // SubnetSelector which checks the selected tab's hvym-subnet
+  // attribute first, then falls back to the global pref.
+  _activeSubnetFor(win) {
     try {
-      return Services.prefs.getStringPref(PREF_ACTIVE_SUBNET, "dns");
+      return lazy.SubnetSelector.getSubnetForWindow(win);
     } catch (e) {
       return "dns";
     }
@@ -421,10 +490,11 @@ export const HvymResolver = {
     const value = event.target.value;
 
     // Two paths in:
-    //   1) bare "name@service" form, only when subnet selector is hvym
+    //   1) bare "name@service" form, only when the active subnet (per
+    //      the selected tab, falling back to the global pref) is hvym
     //   2) full "hvym://name@service" URI form, regardless of subnet
     let parsed = this.parseHvymUri(value);
-    if (!parsed && this._activeSubnet === "hvym") {
+    if (!parsed && this._activeSubnetFor(win) === "hvym") {
       parsed = this.parseAddress(value);
     }
     if (!parsed) return;
@@ -598,12 +668,26 @@ export const HvymResolver = {
   async _resolveAndLoad({ name, service, path }, win) {
     const record = await this._resolve(name);
     const finalUrl = this.buildResolvedUrl(record, service, path);
-    console.log(`LEPUS HvymResolver: ${name}@${service} -> ${finalUrl}`);
+    const hvymUri = `hvym://${name}@${service}${path || ""}`;
+    this.recordResolution(hvymUri, finalUrl);
+    console.log(`LEPUS HvymResolver: ${hvymUri} -> ${finalUrl}`);
 
     const browser = win.gBrowser;
     if (!browser) {
       throw new Error("no gBrowser on this window");
     }
+
+    // Mark the destination tab as being in the hvym subnet so the
+    // subnet selector + URL bar placeholder reflect that for back/
+    // forward/reload and tab-switch purposes. The native browser.loadURI
+    // call below loads into the currently selected tab, so the selected
+    // tab IS the destination tab.
+    try {
+      lazy.SubnetSelector.setSubnetForWindow(win, "hvym");
+    } catch (e) {
+      // SubnetSelector may not be loaded yet during early window init
+    }
+
     browser.loadURI(Services.io.newURI(finalUrl), {
       triggeringPrincipal:
         Services.scriptSecurityManager.getSystemPrincipal(),
