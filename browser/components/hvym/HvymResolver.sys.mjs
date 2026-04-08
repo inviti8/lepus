@@ -292,6 +292,61 @@ export const HvymResolver = {
       event => this._onKeyDown(event, win),
       true
     );
+
+    this._installGBrowserHooks(win);
+  },
+
+  // Wrap gBrowser.loadURI and gBrowser.fixupAndLoadURIString so any
+  // navigation to an hvym:// URI gets routed through our resolver instead
+  // of falling through to Necko (which has no protocol handler for hvym
+  // and would fail). This catches:
+  //   - Same-tab link clicks (<a href="hvym://...">)
+  //   - URL bar Enter when the input has the hvym:// prefix
+  //   - Bookmarks and history navigation
+  //   - Programmatic gBrowser.loadURI calls from chrome JS
+  //
+  // Known limitation: middle-click and ctrl-click "open in new tab"
+  // routes through gBrowser.loadOneTab -> creates a fresh browser element
+  // -> calls fixupAndLoadURIString on that element directly, not via
+  // gBrowser. Those paths are not caught by this hook. The proper fix is
+  // to register a real nsIProtocolHandler via components.conf so Necko
+  // knows about hvym:// at every entry point. Tracked as a follow-up.
+  _installGBrowserHooks(win) {
+    const browser = win.gBrowser;
+    if (!browser) {
+      console.error("LEPUS HvymResolver: no gBrowser on this window");
+      return;
+    }
+
+    const origLoadURI = browser.loadURI.bind(browser);
+    browser.loadURI = (uri, params) => {
+      const spec = uri && typeof uri === "object" ? uri.spec : uri;
+      const parsed = typeof spec === "string" ? this.parseHvymUri(spec) : null;
+      if (parsed) {
+        this._resolveAndLoad(parsed, win).catch(err => {
+          console.error("LEPUS HvymResolver: gBrowser.loadURI hvym failed", err);
+          this._showError(win, `HVYM: ${err.message || err}`);
+        });
+        return;
+      }
+      return origLoadURI(uri, params);
+    };
+
+    const origFixup = browser.fixupAndLoadURIString.bind(browser);
+    browser.fixupAndLoadURIString = (uriString, params) => {
+      const parsed = this.parseHvymUri(uriString);
+      if (parsed) {
+        this._resolveAndLoad(parsed, win).catch(err => {
+          console.error(
+            "LEPUS HvymResolver: gBrowser.fixupAndLoadURIString hvym failed",
+            err
+          );
+          this._showError(win, `HVYM: ${err.message || err}`);
+        });
+        return;
+      }
+      return origFixup(uriString, params);
+    };
   },
 
   get _activeSubnet() {
@@ -321,10 +376,14 @@ export const HvymResolver = {
     }
   },
 
+  // Parse the bare URL-bar form, e.g. "lepus-e2e-gdvl2jda@default".
+  // Requires the @ character as a disambiguator from regular search/URL
+  // input -- without it, every word the user types would be misinterpreted
+  // as an HVYM name lookup. Returns {name, service, path} or null.
   parseAddress(input) {
-    const trimmed = input.trim();
-    // Require an @ to disambiguate from regular search/URL input.
+    const trimmed = (input || "").trim();
     if (!trimmed.includes("@")) return null;
+    if (trimmed.includes("://")) return null;
     const match = HVYM_ADDRESS_RE.exec(trimmed);
     if (!match) return null;
     return {
@@ -334,12 +393,40 @@ export const HvymResolver = {
     };
   },
 
+  // Parse a fully-qualified hvym:// URI string, e.g.
+  // "hvym://lepus-e2e-gdvl2jda@default/path". The @service segment is
+  // optional here because the hvym:// prefix is already a sufficient
+  // disambiguator. Returns {name, service, path} or null.
+  parseHvymUri(uriString) {
+    if (typeof uriString !== "string") return null;
+    if (!uriString.startsWith("hvym://")) return null;
+    const rest = uriString.slice("hvym://".length);
+    const match = HVYM_ADDRESS_RE.exec(rest);
+    if (!match) return null;
+    return {
+      name: match[1],
+      service: match[2] || "default",
+      path: match[3] || "",
+    };
+  },
+
+  // Try both parsers. Use this for any input that might be either form
+  // (URL bar input is the typical case).
+  parseAnyHvymInput(input) {
+    return this.parseHvymUri(input) || this.parseAddress(input);
+  },
+
   _onKeyDown(event, win) {
     if (event.key !== "Enter") return;
-    if (this._activeSubnet !== "hvym") return;
-
     const value = event.target.value;
-    const parsed = this.parseAddress(value);
+
+    // Two paths in:
+    //   1) bare "name@service" form, only when subnet selector is hvym
+    //   2) full "hvym://name@service" URI form, regardless of subnet
+    let parsed = this.parseHvymUri(value);
+    if (!parsed && this._activeSubnet === "hvym") {
+      parsed = this.parseAddress(value);
+    }
     if (!parsed) return;
 
     event.preventDefault();

@@ -242,10 +242,11 @@ var gBrowserInit = {
       console.error("LEPUS: Failed to initialize SubnetSelector:", e);
     }
 
-    // LEPUS: Wire the HVYM @-address resolver into the URL bar.
-    // Intercepts Enter when the subnet selector is set to "hvym" and
-    // the value matches name@service, then routes through the
-    // hvym-sidecar dev resolver. See HvymResolver.sys.mjs.
+    // LEPUS: Wire the HVYM @-address resolver into the URL bar and
+    // gBrowser. Intercepts Enter on bare "name@service" input (when the
+    // subnet selector is hvym) and "hvym://..." URIs (any time). Resolves
+    // directly via Soroban RPC -- no daemon, no external process. See
+    // HvymResolver.sys.mjs.
     try {
       let { HvymResolver } = ChromeUtils.importESModule(
         "resource:///modules/HvymResolver.sys.mjs"
