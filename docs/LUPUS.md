@@ -19,22 +19,50 @@ The naming draws from Anishinaabe tradition: Nanabozho (the Great Hare) is the t
 ## Architecture
 
 ```
-Lepus Browser                      Lupus Daemon (separate process)
-  │                                  │
-  │  WebSocket (localhost:9549)      ├── TinyAgent search model + LoRA adapters
-  │◄────────────────────────────────►├── Security model (code-trained)
-  │                                  ├── IPFS client (Iroh)
-  │  browser/components/lupus/       ├── Distributed crawler/indexer
-  │    LupusClient.sys.mjs           ├── Local semantic search index
-  │                                  └── Tools (search, fetch, scan, crawl)
-  │           └── Prompt-engineered for HTML/JS threat analysis
+Lepus Browser                              Lupus Daemon (separate process)
+  │                                          │
+  │   WebSocket (localhost:9549)             ├── TinyAgent search model + LoRA
+  │◄────────────────────────────────────────►├── Security model (code-trained)
+  │                                          ├── IPFS client (Iroh)
+  │   browser/components/lupus/              ├── Distributed crawler/indexer
+  │     LupusClient.sys.mjs                  ├── Local semantic search index
+  │                                          └── Tools (search, fetch, scan, ...)
   │
-  └── Integration Points
-      ├── URL bar → search model routes query, calls tools, collates results
+  │  HVYM resolution lives ENTIRELY in Lepus
+  │   browser/components/hvym/
+  │     HvymResolver.sys.mjs  ─── direct Soroban RPC, no daemon dependency
+  │     SubnetSelector.sys.mjs
+  │
+  └── Integration points (Lupus)
       ├── Page load → security model scans HTML, produces trust score
-      ├── HVYM subnet → search model indexes datapod metadata
-      └── Content reading → content adapter summarizes pages
+      ├── URL bar (later) → optional AI-assisted search results
+      └── Content reading (later) → optional summarization/extraction
 ```
+
+> **Boundary:** HVYM subnet name resolution does **not** go through Lupus.
+> Lepus talks directly to the Soroban testnet/mainnet via JSON-RPC from
+> `HvymResolver.sys.mjs`, decodes the `NameRecord` from the contract's
+> persistent storage, and constructs the tunnel URL itself. Lupus has no
+> `resolve_name` method in its protocol — see `D:/repos/lupus/daemon/src/protocol.rs`.
+> The browser will keep working with full HVYM functionality even if the
+> Lupus daemon is not installed.
+
+## Status (April 2026)
+
+| Component | State | Notes |
+|---|---|---|
+| **Lupus daemon scaffold** | Built | Rust binary in `D:/repos/lupus/daemon/`. tokio + tokio-tungstenite WebSocket server on `ws://127.0.0.1:9549`. All component module files exist (agent, security, crawler, ipfs, index, tools/). |
+| **IPC protocol** | Specified | `lupus/daemon/src/protocol.rs` is the canonical typed shape for the 8 methods. JSON envelope `{id, method, params}` → `{id, status, result|error}`. |
+| **Method dispatch** | Wired | `daemon.rs` routes search / scan_page / summarize / index_page / get_status / index_stats / swap_adapter / shutdown. Handlers currently return placeholder data — real inference is gated on model loading. |
+| **llama-cpp bindings** | Not yet integrated | `llama-cpp-2 = "0.1"` is commented out in `daemon/Cargo.toml`. The agent + security modules currently have no real model loading. |
+| **Iroh IPFS client** | Not yet integrated | `iroh = "0.28"` commented out. |
+| **Security model training** | **In progress (top priority)** | Stage 1 = URL classifier (Qwen2.5-Coder-0.5B), Stage 2 = URL + HTML body. Full RunPod runbook in `lupus/training/RUNBOOK.md`. |
+| **Search adapter** | Not started | Comes after security model is trained. Folklore compendium for knowledge-aware search examples is partially built (~36 tales across Aesop, Anishinaabe, Egyptian, Japanese, Russian). |
+| **Content adapter** | Not started | Comes after search adapter. |
+| **Lepus-side `LupusClient.sys.mjs`** | Stub | `browser/components/lupus/LupusClient.sys.mjs` connects to `ws://127.0.0.1:9549` and exposes `search`, `scanPage`, `summarize`, `indexPage`, `getStatus`. Not yet wired to any UI surface. |
+| **Lepus-side HVYM resolver** | **Working** | `browser/components/hvym/HvymResolver.sys.mjs`. Direct Soroban RPC, byte-identical XDR encoder verified against `stellar-sdk`, JSON-format SCVal response parsing. End-to-end tested in browser against testnet contract `CC3X4H2D5X6VINLWG4FRHXNTJSDIS357NDHZD6D3IVGLRKURAGNGA4GM`. |
+
+---
 
 ## Two-Model System
 
@@ -145,44 +173,52 @@ cooperative@models/lupus/
 
 ## Integration with Lepus
 
-### URL Bar Search
-
-```
-User types query
-  → TinyAgent + search adapter loaded
-  → Model selects tools: search_subnet("digital art preservation")
-  → Tool returns datapod metadata matches
-  → Model calls: fetch_page("alice@articles/guide")
-  → Content adapter loaded (LoRA hot-swap)
-  → Model reads page, extracts key information
-  → Results presented in dropdown or new tab
-```
-
-### Page Load Security
+### Page Load Security (the first integration point)
 
 ```
 User navigates to URL
   → HTML fetched (before rendering)
-  → Lupus Security model loaded
-  → Input: first 4KB of HTML + URL
-  → Output: { score: 92, threats: [], safe: true }
+  → LupusClient.scanPage(html, url) over WebSocket
+  → Daemon's security.rs runs the trained URL/HTML classifier
+  → Returns { score: 0-100, threats: [...], safe: bool }
   → Trust indicator shown in address bar
-  → If score < 50: warning overlay before rendering
+  → If score below threshold: warning overlay before rendering
 ```
 
-### HVYM Subnet Discovery
+This is the **first** Lupus integration to land. It depends on the
+security model finishing training (in progress per
+`lupus/training/RUNBOOK.md`).
+
+### URL Bar Search (later, optional)
+
+Once the search adapter is trained, the URL bar can route ambiguous
+queries to Lupus for AI-assisted result ranking. Until then, the URL
+bar is intentionally minimal — all upstream Firefox suggestion sources
+are disabled (see `browser/branding/lepus/pref/firefox-branding.js`).
 
 ```
-Background (periodic):
-  → Fetch new datapod metadata from cooperative index
-  → Content adapter generates embeddings
-  → Local semantic index updated
-  
-User searches:
-  → Query embedded locally
-  → Nearest-neighbor search against local index
-  → Results ranked by: semantic similarity + CWP commitment score
+User types query (not an HVYM @-address, not a URL)
+  → LupusClient.search(query) over WebSocket
+  → Daemon's agent.rs picks tools, fetches results, ranks them
+  → Browser shows results in a dropdown or new tab
 ```
+
+### Content Reading (later)
+
+Page summarization, key fact extraction, and content categorization for
+member-curated content. Wired through `LupusClient.summarize()`.
+
+### Local Index Contribution (opt-in, much later)
+
+Background `LupusClient.indexPage(metadata)` calls feed the
+cooperative's distributed search index. Strictly opt-in per
+`docs/DISTRIBUTED_CRAWLING.md`.
+
+### HVYM Subnet Resolution — NOT a Lupus integration
+
+`name@service` lookups go through `browser/components/hvym/HvymResolver.sys.mjs`
+which talks directly to Soroban RPC. Lupus is **not** in the
+resolution path. See above (`Boundary` note in Architecture section).
 
 ---
 
@@ -198,38 +234,51 @@ Runs on any machine from the last 5 years. No GPU required. 8GB RAM minimum (wit
 
 ---
 
-## Lupus Repo Structure
+## Lupus Repo Structure (actual, April 2026)
 
 ```
 inviti8/lupus/
   README.md
-  LICENSE
-  docs/
-    TRAINING.md              — fine-tuning methodology and recipes
-    DATASETS.md              — training data curation and sources
-    SECURITY_TRAINING.md     — security model training specifics
-    EVALUATION.md            — benchmark suite and results
   base/
-    config.yaml              — base model selection and hyperparameters
-    download_base.py         — fetch base model weights
+    config.yaml              — model selection (TinyAgent-1.1B + Qwen-Coder-0.5B)
+  daemon/                    — Rust binary
+    Cargo.toml               — tokio + tokio-tungstenite; llama-cpp-2 + iroh commented out
+    src/
+      main.rs                — bootstrap, model loading, server start
+      daemon.rs              — IPC dispatch (handle_search, handle_scan, ...)
+      protocol.rs            — typed Request/Response shapes (canonical IPC source)
+      server.rs              — WebSocket server on ws://127.0.0.1:9549
+      agent.rs               — TinyAgent + LoRA hot-swap (placeholder)
+      security.rs            — security classifier inference (placeholder)
+      crawler.rs             — distributed indexer (placeholder)
+      ipfs.rs                — Iroh IPFS client (placeholder)
+      index.rs               — local semantic index (placeholder)
+      config.rs              — config.yaml loading
+      tools/                 — tool implementations the agent calls
+        search_subnet.rs
+        search_local.rs
+        fetch_page.rs
+        extract_content.rs
+        scan_security.rs
+        crawl_index.rs
+  datasets/                  — training data
+    folklore/tales/          — 36 FolkloreTale entries (Aesop, Anishinaabe,
+                               Egyptian, Japanese, Russian)
+    search/examples/         — derived knowledge_aware.jsonl + tool-call examples
+    security/                — phishing/malware/safe URLs + builders
+      build_dataset.py
+      examples/              — train.jsonl, eval.jsonl
   adapters/
-    search/
-      train_search.py        — search adapter fine-tuning
-      search_dataset/        — training examples
-      eval_search.py         — search quality benchmarks
-    content/
-      train_content.py       — content adapter fine-tuning
-      content_dataset/       — training examples
-  security/
-    train_security.py        — security model fine-tuning
-    phishing_dataset/        — phishing/malware examples
-    safe_dataset/            — legitimate page examples
-    eval_security.py         — detection rate benchmarks
-  export/
-    export_gguf.py           — convert to GGUF for Lepus
-    sign_model.py            — sign with cooperative key
-    publish.py               — publish to cooperative registry
-  eval/
-    benchmarks/              — standardized test suites
-    results/                 — benchmark results per version
+    search/                  — LoRA training (Python, not yet started)
+    content/                 — LoRA training (Python, not yet started)
+  training/                  — RunPod training infrastructure
+    RUNBOOK.md               — step-by-step training guide
+    train_security.py        — Stage 1 URL classifier training script
+    setup_pod.sh             — pod bootstrap
+    push_dataset.py          — local → S3 dataset upload
+    pull_model.py            — S3 → local model download
+    s3_utils.py              — S3 client
+  docs/
+    DAEMON.md                — IPC protocol, components, lifecycle
+    TRAINING_STRATEGY.md     — full training plan and cost estimates
 ```
