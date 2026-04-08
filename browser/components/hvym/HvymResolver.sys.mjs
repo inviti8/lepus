@@ -43,6 +43,21 @@ const DEFAULT_SOROBAN_RPC = "https://soroban-testnet.stellar.org";
 const HVYM_ADDRESS_RE =
   /^([a-z][a-z0-9-]{0,62})(?:@([a-z][a-z0-9-]{0,62}))?(\/.*)?$/;
 
+// Cache TTLs
+//
+// Positive entries use the contract's `ttl` field (default 3600s, 1 hour).
+// Negative entries (not-found / RPC errors) get a short fixed window so a
+// typo in the URL bar doesn't hammer the RPC, but a real correction lands
+// quickly. The contract `ttl` is metadata the cooperative controls -- the
+// in-browser default applies only when the field is missing or zero.
+const DEFAULT_POSITIVE_TTL_SEC = 3600;
+const NEGATIVE_TTL_SEC = 60;
+// Stale-while-revalidate window: a positive entry that has expired is still
+// returned to the caller (so navigation feels instant), and a background
+// refresh fires. After this window the stale entry is dropped entirely and
+// the user has to wait for a fresh resolve.
+const STALE_GRACE_SEC = 86400; // 24 hours
+
 // ── StrKey base32 decoder ──────────────────────────────────────────────────
 //
 // Stellar StrKey format for contract IDs (CC...):
@@ -233,15 +248,33 @@ function parseNameRecord(dataJson) {
 // ── Module entry point ─────────────────────────────────────────────────────
 
 export const HvymResolver = {
-  _initialized: false,
-  _window: null,
   _contractIdBytes: null,
 
-  init(win) {
-    if (this._initialized) return;
-    this._initialized = true;
-    this._window = win;
+  // Per-window state. The HvymResolver singleton is loaded once per
+  // process and shared across all browser windows; each window registers
+  // its URL bar listener via init(win), and the listener captures the
+  // window in its closure. We track windows here so a re-init from the
+  // same window is a no-op.
+  _windows: new WeakSet(),
 
+  // Resolution cache (process-wide singleton, shared across all windows
+  // and tabs in this Lepus session). Maps lowercased name to a record
+  // entry of shape { record, fetchedAt, ttl, negative }. For negative
+  // entries, `record` is null and `negative` carries the Error so the
+  // same failure can be re-thrown on cache hits without an RPC roundtrip.
+  _cache: new Map(),
+
+  // In-flight requests keyed by name. If a second resolve fires for the
+  // same name while the first is still pending, both share the same
+  // promise -- prevents thundering-herd from rapid typing.
+  _inflight: new Map(),
+
+  init(win) {
+    if (this._windows.has(win)) return;
+    this._windows.add(win);
+
+    // The contract ID decode only needs to happen once per process,
+    // but it's idempotent and cheap so per-window is fine.
     try {
       this._contractIdBytes = decodeContractStrKey(this._contractStrKey);
     } catch (e) {
@@ -254,7 +287,11 @@ export const HvymResolver = {
       console.error("LEPUS HvymResolver: #urlbar-input not found");
       return;
     }
-    urlbar.addEventListener("keydown", this._onKeyDown.bind(this), true);
+    urlbar.addEventListener(
+      "keydown",
+      event => this._onKeyDown(event, win),
+      true
+    );
   },
 
   get _activeSubnet() {
@@ -297,7 +334,7 @@ export const HvymResolver = {
     };
   },
 
-  _onKeyDown(event) {
+  _onKeyDown(event, win) {
     if (event.key !== "Enter") return;
     if (this._activeSubnet !== "hvym") return;
 
@@ -309,13 +346,104 @@ export const HvymResolver = {
     event.stopPropagation();
     event.stopImmediatePropagation();
 
-    this._resolveAndLoad(parsed).catch(err => {
+    this._resolveAndLoad(parsed, win).catch(err => {
       console.error("LEPUS HvymResolver: resolve failed", err);
-      this._showError(`HVYM: ${err.message || err}`);
+      this._showError(win, `HVYM: ${err.message || err}`);
     });
   },
 
+  // Public resolve entry point: cache-aware. Callers should always use
+  // this rather than _resolveFromNetwork.
   async _resolve(name) {
+    const key = name.toLowerCase();
+    const now = Date.now() / 1000;
+    const cached = this._cache.get(key);
+
+    // Negative cache hit (recent failure). Re-throw the same error so
+    // the user gets immediate feedback on a typo without an RPC roundtrip.
+    if (cached?.negative && now - cached.fetchedAt < NEGATIVE_TTL_SEC) {
+      throw cached.negative;
+    }
+
+    // Positive cache hit, still fresh.
+    if (cached?.record && now - cached.fetchedAt < cached.ttl) {
+      return cached.record;
+    }
+
+    // Stale-but-within-grace: serve cached, refresh in background.
+    if (
+      cached?.record &&
+      now - cached.fetchedAt < cached.ttl + STALE_GRACE_SEC
+    ) {
+      this._refreshInBackground(key);
+      return cached.record;
+    }
+
+    // Cold cache (or fully expired beyond grace). Fetch synchronously,
+    // sharing in-flight promises so concurrent callers don't double-fetch.
+    return this._fetchAndCache(key);
+  },
+
+  // Internal: do a network fetch and update the cache. Coalesces
+  // concurrent requests for the same name into a single in-flight promise.
+  _fetchAndCache(key) {
+    const existing = this._inflight.get(key);
+    if (existing) return existing;
+
+    const promise = (async () => {
+      try {
+        const record = await this._resolveFromNetwork(key);
+        const ttl = (record.ttl && Number(record.ttl)) || DEFAULT_POSITIVE_TTL_SEC;
+        this._cache.set(key, {
+          record,
+          fetchedAt: Date.now() / 1000,
+          ttl,
+          negative: null,
+        });
+        return record;
+      } catch (err) {
+        this._cache.set(key, {
+          record: null,
+          fetchedAt: Date.now() / 1000,
+          ttl: NEGATIVE_TTL_SEC,
+          negative: err,
+        });
+        throw err;
+      } finally {
+        this._inflight.delete(key);
+      }
+    })();
+
+    this._inflight.set(key, promise);
+    return promise;
+  },
+
+  // Background revalidation. Fire-and-forget; failures here are silent
+  // because the caller already has a usable (stale) record.
+  _refreshInBackground(key) {
+    if (this._inflight.has(key)) return;
+    this._fetchAndCache(key).catch(err => {
+      console.warn(
+        `LEPUS HvymResolver: background refresh of ${key} failed`,
+        err
+      );
+    });
+  },
+
+  // Test / debug helper. Pass a name to invalidate one entry, omit to
+  // clear the entire cache. Not currently exposed via UI but useful from
+  // the Browser Console: `HvymResolver._clearCache()`.
+  _clearCache(name) {
+    if (name === undefined) {
+      this._cache.clear();
+      return;
+    }
+    this._cache.delete(name.toLowerCase());
+  },
+
+  // Network-only resolve. Bypass the cache. Should only be called from
+  // _fetchAndCache; everything else should go through _resolve.
+  async _resolveFromNetwork(name) {
     const keyBytes = encodeLedgerKey(this._contractIdBytes, name);
     const keyB64 = uint8ToBase64(keyBytes);
     const body = {
@@ -346,7 +474,7 @@ export const HvymResolver = {
     return parseNameRecord(entries[0].dataJson);
   },
 
-  async _resolveAndLoad({ name, service, path }) {
+  async _resolveAndLoad({ name, service, path }, win) {
     const record = await this._resolve(name);
     const tunnelId = record.tunnel_id;
     const tunnelRelay = record.tunnel_relay;
@@ -361,7 +489,7 @@ export const HvymResolver = {
     const finalUrl = `https://${tunnelId}.${tunnelRelay}${servicePath}${path || ""}`;
     console.log(`LEPUS HvymResolver: ${name}@${service} -> ${finalUrl}`);
 
-    const browser = this._window.gBrowser;
+    const browser = win.gBrowser;
     if (!browser) {
       throw new Error("no gBrowser on this window");
     }
@@ -371,8 +499,7 @@ export const HvymResolver = {
     });
   },
 
-  _showError(message) {
-    const win = this._window;
+  _showError(win, message) {
     if (!win) return;
     const urlbar = win.document.getElementById("urlbar-input");
     if (urlbar) {
