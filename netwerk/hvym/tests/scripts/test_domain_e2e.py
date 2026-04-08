@@ -867,7 +867,44 @@ async def main_async(args: argparse.Namespace) -> int:
             return 2
 
         # Phase 0.6 — fetch through tunnel using the resolved record
-        await full_chain_fetch(record, tester_kp.public_key, results)
+        fetch_ok = await full_chain_fetch(record, tester_kp.public_key, results)
+
+        # --keep-alive: hold the plumbing open so a browser can hit the URL.
+        # The tunnel_message_loop task is still running in the background, so
+        # the local server + WSS bind stay alive until we set stop_event.
+        if args.keep_alive and fetch_ok:
+            tunnel_id = getattr(record, "tunnel_id", None)
+            tunnel_id_str = (
+                tunnel_id.address if hasattr(tunnel_id, "address") else str(tunnel_id)
+            )
+            relay = getattr(record, "tunnel_relay", b"")
+            relay_str = relay.decode() if isinstance(relay, bytes) else str(relay)
+            services = getattr(record, "services", {}) or {}
+            default_path = "/"
+            for k, v in services.items():
+                key = k.decode() if isinstance(k, bytes) else str(k)
+                if key == "default":
+                    default_path = v.decode() if isinstance(v, bytes) else str(v)
+                    break
+            url = f"https://{tunnel_id_str}.{relay_str}{default_path}"
+
+            log.info("")
+            log.info("=" * 70)
+            log.info("KEEP-ALIVE MODE: tunnel + local server are now held open.")
+            log.info("")
+            log.info(f"  HVYM name:    {test_name}")
+            log.info(f"  Resolved URL: {url}")
+            log.info(f"  Local origin: http://127.0.0.1:{LOCAL_PORT}/e2e.html")
+            log.info("")
+            log.info("Open Lepus and navigate to the resolved URL above.")
+            log.info("Expected: page renders 'HVYM_E2E_TEST_OK' marker.")
+            log.info("")
+            log.info("Press Ctrl+C to tear down the tunnel and exit.")
+            log.info("=" * 70)
+            try:
+                await asyncio.Event().wait()  # blocks until cancelled / Ctrl+C
+            except (KeyboardInterrupt, asyncio.CancelledError):
+                log.info("Keep-alive interrupted; tearing down.")
 
     finally:
         log.info("--- Phase 0.7: Teardown ---")
@@ -905,12 +942,24 @@ def parse_args() -> argparse.Namespace:
         "--force-key", type=int, choices=[1, 2, 3], default=None,
         help="Force a specific STELLAR_SECRET_KEY_N from .env, ignoring auto-selection",
     )
+    p.add_argument(
+        "--keep-alive", action="store_true",
+        help="After Phase 0.6 passes, hold the tunnel + local payload server "
+             "open until Ctrl+C. Lets you point a browser at the resolved URL.",
+    )
     return p.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    code = asyncio.run(main_async(args))
+    try:
+        code = asyncio.run(main_async(args))
+    except KeyboardInterrupt:
+        # If Ctrl+C lands here (e.g. during keep-alive on Windows where
+        # asyncio.Event().wait() may not catch it), still exit cleanly.
+        # The teardown in main_async's finally already ran.
+        log.info("Interrupted.")
+        code = 0
     sys.exit(code)
 
 
