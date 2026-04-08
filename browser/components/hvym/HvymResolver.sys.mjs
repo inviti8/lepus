@@ -561,19 +561,43 @@ export const HvymResolver = {
     return parseNameRecord(entries[0].dataJson);
   },
 
-  async _resolveAndLoad({ name, service, path }, win) {
-    const record = await this._resolve(name);
-    const tunnelId = record.tunnel_id;
-    const tunnelRelay = record.tunnel_relay;
+  // Build the resolved HTTPS URL for a given (record, service, path).
+  // Throws if the service isn't registered for the name. This is the
+  // window-independent URL construction step that both _resolveAndLoad
+  // (URL bar / gBrowser hook path) and HvymProtocolHandler.newChannel
+  // (Necko channel path) share.
+  buildResolvedUrl(record, service, path) {
     const services = record.services || {};
     const servicePath = services[service];
     if (!servicePath) {
       const known = Object.keys(services).join(", ") || "(none)";
       throw new Error(
-        `service "${service}" not registered for "${name}". Available: ${known}`
+        `service "${service}" not registered. Available: ${known}`
       );
     }
-    const finalUrl = `https://${tunnelId}.${tunnelRelay}${servicePath}${path || ""}`;
+    const tunnelId = record.tunnel_id;
+    const tunnelRelay = record.tunnel_relay;
+    return `https://${tunnelId}.${tunnelRelay}${servicePath}${path || ""}`;
+  },
+
+  // Synchronous cache-only resolve. Returns the cached record if it's
+  // present and not expired (or stale-but-within-grace), otherwise null.
+  // Used by HvymProtocolHandler.newChannel to take the fast path when
+  // the cache is warm and avoid spawning a custom async channel.
+  resolveSync(name) {
+    const key = name.toLowerCase();
+    const cached = this._cache.get(key);
+    if (!cached?.record) return null;
+    const now = Date.now() / 1000;
+    if (now - cached.fetchedAt < cached.ttl + STALE_GRACE_SEC) {
+      return cached.record;
+    }
+    return null;
+  },
+
+  async _resolveAndLoad({ name, service, path }, win) {
+    const record = await this._resolve(name);
+    const finalUrl = this.buildResolvedUrl(record, service, path);
     console.log(`LEPUS HvymResolver: ${name}@${service} -> ${finalUrl}`);
 
     const browser = win.gBrowser;

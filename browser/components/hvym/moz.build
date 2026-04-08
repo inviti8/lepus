@@ -7,6 +7,11 @@
 # LEPUS: Subnet selector UI and HVYM browser chrome components.
 
 EXTRA_JS_MODULES += [
+    "HvymProtocolHandler.sys.mjs",
     "HvymResolver.sys.mjs",
     "SubnetSelector.sys.mjs",
+]
+
+XPCOM_MANIFESTS += [
+    "components.conf",
 ]
