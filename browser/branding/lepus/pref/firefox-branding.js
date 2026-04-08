@@ -86,6 +86,12 @@ pref("browser.urlbar.searchModeSwitcher.featureGate", false);
 pref("browser.urlbar.scotchBonnet.enableOverride", false);
 pref("browser.urlbar.unifiedSearchButton.always", false);
 
+// HVYM subnet resolver: in-browser Soroban RPC client. The contract ID and
+// RPC URL are pref-controlled so a redeploy or network switch needs only an
+// about:config change, not a code change. See HvymResolver.sys.mjs.
+pref("lepus.hvym.nameregistry.contract", "CC3X4H2D5X6VINLWG4FRHXNTJSDIS357NDHZD6D3IVGLRKURAGNGA4GM");
+pref("lepus.hvym.soroban.rpc", "https://soroban-testnet.stellar.org");
+
 // Disable GenAI and AI Window (invasive features)
 pref("browser.ml.chat.enabled", false);
 pref("browser.ml.chat.sidebar", false);

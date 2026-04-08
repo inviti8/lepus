@@ -242,6 +242,19 @@ var gBrowserInit = {
       console.error("LEPUS: Failed to initialize SubnetSelector:", e);
     }
 
+    // LEPUS: Wire the HVYM @-address resolver into the URL bar.
+    // Intercepts Enter when the subnet selector is set to "hvym" and
+    // the value matches name@service, then routes through the
+    // hvym-sidecar dev resolver. See HvymResolver.sys.mjs.
+    try {
+      let { HvymResolver } = ChromeUtils.importESModule(
+        "resource:///modules/HvymResolver.sys.mjs"
+      );
+      HvymResolver.init(window);
+    } catch (e) {
+      console.error("LEPUS: Failed to initialize HvymResolver:", e);
+    }
+
     // Hack to ensure that the various initial pages favicon is loaded
     // instantaneously, to avoid flickering and improve perceived performance.
     this._callWithURIToLoad(uriToLoad => {

@@ -7,5 +7,6 @@
 # LEPUS: Subnet selector UI and HVYM browser chrome components.
 
 EXTRA_JS_MODULES += [
+    "HvymResolver.sys.mjs",
     "SubnetSelector.sys.mjs",
 ]

@@ -47,13 +47,15 @@ export const SubnetSelector = {
 
   /**
    * Called when the user selects a subnet from the dropdown.
+   * `event.target.ownerDocument` is used because `document` is not
+   * defined in the scope of a sys.mjs module.
    */
   onSelect(event) {
     const subnet = event.target.value;
     this.currentSubnet = subnet;
 
-    // Update the URL bar placeholder and behavior
-    const urlbar = document.getElementById("urlbar-input");
+    const doc = event.target.ownerDocument;
+    const urlbar = doc.getElementById("urlbar-input");
     if (urlbar) {
       if (subnet === "hvym") {
         urlbar.placeholder = "name@service";
