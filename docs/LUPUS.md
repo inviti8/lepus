@@ -47,20 +47,120 @@ Lepus Browser                              Lupus Daemon (separate process)
 > The browser will keep working with full HVYM functionality even if the
 > Lupus daemon is not installed.
 
-## Status (April 2026)
+## Status (April 2026 — updated after Lupus daemon Phase 7)
 
 | Component | State | Notes |
 |---|---|---|
-| **Lupus daemon scaffold** | Built | Rust binary in `D:/repos/lupus/daemon/`. tokio + tokio-tungstenite WebSocket server on `ws://127.0.0.1:9549`. All component module files exist (agent, security, crawler, ipfs, index, tools/). |
-| **IPC protocol** | Specified | `lupus/daemon/src/protocol.rs` is the canonical typed shape for the 8 methods. JSON envelope `{id, method, params}` → `{id, status, result|error}`. |
-| **Method dispatch** | Wired | `daemon.rs` routes search / scan_page / summarize / index_page / get_status / index_stats / swap_adapter / shutdown. Handlers currently return placeholder data — real inference is gated on model loading. |
-| **llama-cpp bindings** | Not yet integrated | `llama-cpp-2 = "0.1"` is commented out in `daemon/Cargo.toml`. The agent + security modules currently have no real model loading. |
-| **Iroh IPFS client** | Not yet integrated | `iroh = "0.28"` commented out. |
-| **Security model training** | **In progress (top priority)** | Stage 1 = URL classifier (Qwen2.5-Coder-0.5B), Stage 2 = URL + HTML body. Full RunPod runbook in `lupus/training/RUNBOOK.md`. |
-| **Search adapter** | Not started | Comes after security model is trained. Folklore compendium for knowledge-aware search examples is partially built (~36 tales across Aesop, Anishinaabe, Egyptian, Japanese, Russian). |
-| **Content adapter** | Not started | Comes after search adapter. |
-| **Lepus-side `LupusClient.sys.mjs`** | Stub | `browser/components/lupus/LupusClient.sys.mjs` connects to `ws://127.0.0.1:9549` and exposes `search`, `scanPage`, `summarize`, `indexPage`, `getStatus`. Not yet wired to any UI surface. |
-| **Lepus-side HVYM resolver** | **Working** | `browser/components/hvym/HvymResolver.sys.mjs`. Direct Soroban RPC, byte-identical XDR encoder verified against `stellar-sdk`, JSON-format SCVal response parsing. End-to-end tested in browser against testnet contract `CC3X4H2D5X6VINLWG4FRHXNTJSDIS357NDHZD6D3IVGLRKURAGNGA4GM`. |
+| **Lupus daemon binary** | **Built and inferring** | Rust binary at `/lupus/daemon/`. Phases 1-7 complete (commit `c461fe5`). llama-cpp-2 linked and compiling. LLMCompiler architecture ported from the Python TinyAgent reference. Ready for integration. |
+| **IPC protocol** | Finalized | `/lupus/daemon/src/protocol.rs`. JSON envelope `{id, method, params}` → `{id, status, result | error}` on `ws://127.0.0.1:9549`. See "IPC Protocol" section below for the current method shapes. |
+| **Agent module layout** | Complete | `daemon/src/agent/{prompt,inference,plan,executor,joinner}.rs`. Planner emits LLMCompiler-format numbered plans (not JSON function-call markers — Phase 1 eval empirically confirmed TinyAgent's actual output). Executor runs steps with `$N` cross-references. Joinner does a second-pass natural-language finish. |
+| **Planner LoRA (search adapter)** | **Trained, shipped** | 354 hand-curated (query, plan) examples. 21/22 hard pass, all 6 metrics GREEN (syntactic validity 100%, tool selection 95.5%, argument shape 100%, hallucinated tool 0%, multi-step 100%, abstention 100%). Artifact at `/lupus/dist/lupus-tinyagent-search/adapter.gguf` (9 MB). Per `docs/TINYAGENT_STEPC_FINDINGS.md` the decision-tree branch 2 ("all green → ship as-is") fires. |
+| **Full pipeline parity** | 20/22 GREEN | Daemon's Rust port matches the Python reference on 20 of 22 golden fixture cases (Phase 7). |
+| **Base model** | Bundled | `/lupus/dist/tinyagent` (TinyAgent-1.1B GGUF). Linked via llama-cpp-2 at daemon runtime. |
+| **Security model** | **Trained** | `/lupus/dist/lupus-security` (Qwen2.5-Coder-0.5B URL classifier). Wired through `daemon/src/security.rs`. |
+| **Content adapter** | Not yet trained | Future work, after search stabilizes in production. |
+| **Iroh IPFS client** | Not yet integrated | `iroh` still commented out in `daemon/Cargo.toml`. Deferred — search + security are the first integration wave; IPFS is second. |
+| **Windows dev setup** | Documented | `/lupus/docs/DAEMON_DEV_SETUP.md`. VS Build Tools 2022 (C++ workload) + LLVM 18+ (libclang for bindgen) + Rust stable. The daemon links llama.cpp C++ from source via `llama-cpp-sys-2`'s cmake build script. |
+| **Lepus-side `LupusClient.sys.mjs`** | Stub | `browser/components/lupus/LupusClient.sys.mjs` connects to `ws://127.0.0.1:9549` and exposes `search`, `scanPage`, `summarize`, `indexPage`, `getStatus`. **Not yet updated for the new `SearchResponse` shape** (see IPC Protocol below) — must be updated before the first integration test. |
+| **Lepus-side HVYM resolver** | **Complete** | `browser/components/hvym/HvymResolver.sys.mjs`. Direct Soroban RPC, byte-identical XDR encoder, JSON-format SCVal response parsing, TTL cache + stale-while-revalidate, URL bar display + copy override, per-tab subnet state, bookmark + star-state overrides. 67+ mochitest assertions passing. End-to-end verified in browser. **Independent of Lupus** — works whether or not the daemon is running. |
+
+---
+
+## IPC Protocol (current, as of daemon Phase 7)
+
+All messages are JSON on `ws://127.0.0.1:9549`. Request envelope:
+`{id, method, params}` → response envelope `{id, status, result | error}`.
+The authoritative source is `/lupus/daemon/src/protocol.rs` — if the shapes
+below drift from that file the Rust side wins.
+
+### Methods
+
+| Method | Direction | Description |
+|---|---|---|
+| `search` | Browser → Lupus | Run a natural-language query through the LLMCompiler agent loop. Returns `text_answer` (joinner output) + `plan` (per-step transparency) + structured `results`. |
+| `scan_page` | Browser → Lupus | Score an HTML page for phishing/malware. Returns `score: 0-100` + `threats[]`. |
+| `summarize` | Browser → Lupus | Extract title + summary from a loaded page. Takes either `url` or `html`. |
+| `index_page` | Browser → Lupus | Add the current page to the local semantic search index. |
+| `get_status` | Browser → Lupus | Health check. Returns model readiness + IPFS + index state. |
+| `index_stats` | Browser → Lupus | Index size, last sync time, contribution mode. |
+| `swap_adapter` | Browser → Lupus | Hot-swap the currently-loaded LoRA adapter (e.g. `search` → `content`). |
+| `shutdown` | Browser → Lupus | Save index state and exit cleanly. |
+
+### `search` response — **new shape, Lepus-side client must be updated**
+
+The daemon's search pipeline is LLMCompiler-based (planner → executor →
+joinner), not a single-shot response. The browser gets three layers back
+and can render them however it likes:
+
+```rust
+pub struct SearchResponse {
+    /// Natural-language answer from the joinner second pass.
+    /// Present when the agent loop completed successfully and the joinner
+    /// produced an `Action: Finish(<answer>)` payload. The browser UI
+    /// should render this as the primary user-facing reply.
+    text_answer: Option<String>,
+
+    /// Per-step record of what the planner emitted and what each tool
+    /// returned, in plan order. Present whenever the agent loop ran far
+    /// enough to produce a plan. The browser UI may render this as a
+    /// "chain of thought" view next to the text answer for transparency.
+    plan: Option<Vec<PlanStepRecord>>,
+
+    /// Structured search hits harvested from the executed plan. Empty
+    /// when the plan didn't include search tools (e.g. abstention,
+    /// fetch-only, security scans).
+    results: Vec<SearchResult>,
+}
+
+pub struct PlanStepRecord {
+    idx: u32,           // Step number from planner (starts at 1)
+    tool: String,       // Tool name as emitted
+    raw_args: String,   // Original arg string, may include $N refs
+    observation: Option<Value>,  // Tool output on success
+    error: Option<String>,       // Human-readable error on failure
+    is_join: bool,      // True if this is a join/join_finish/join_replan terminator
+}
+
+pub struct SearchResult {
+    title: String,
+    url: String,
+    summary: String,
+    trust_score: u8,
+    commitment: f64,
+}
+```
+
+The current Lepus-side stub (`LupusClient.sys.mjs`) predates this shape
+and expects `{results: [...]}` only. **It must be updated before the
+first integration test** to unpack `text_answer` and `plan` as well,
+otherwise the joinner output and chain-of-thought view will be silently
+dropped on the browser side.
+
+### Error format
+
+```json
+{
+  "id": "req-001",
+  "status": "error",
+  "error": { "code": "model_not_loaded", "message": "..." }
+}
+```
+
+Error codes worth handling on the Lepus side:
+- `model_not_loaded` — daemon is still warming up the base model + LoRA
+- `adapter_not_found` — `swap_adapter` called with an unknown adapter name
+- `plan_parse_failed` — planner output couldn't be parsed (rare after Phase 4)
+- `tool_execution_failed` — a tool returned an error and the joinner couldn't recover
+- `timeout` — the agent loop exceeded its time budget
+
+### Lifecycle
+
+1. Lepus launches. `LupusClient.sys.mjs` attempts to connect to `ws://127.0.0.1:9549`.
+2. If the connection fails, Lupus-dependent features degrade gracefully (search = fall back to URL bar pass-through, security indicator = hidden, summarize/index = disabled).
+3. If connected, Lepus calls `get_status` periodically to track readiness. Models load in background; `models.search.state == "loading"` until the GGUF is mmap'd and the LoRA is attached.
+4. On `models.search.state == "ready"`, Lepus exposes search through the UI.
+5. On navigation, Lepus calls `scan_page` with the loaded HTML + URL; the trust indicator updates from the response.
+6. On graceful browser shutdown, Lepus sends `shutdown` so the daemon saves the index.
 
 ---
 
