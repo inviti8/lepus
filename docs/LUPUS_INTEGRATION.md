@@ -1,7 +1,7 @@
 # Lupus Integration — Lepus-side Implementation Plan
 
-**Status:** Planning — ready to start Phase 1
-**Date:** 2026-04-09
+**Status:** Phases 1-6 landed — browser-side IPC plumbing + archive button complete
+**Date:** 2026-04-09 (plan) / 2026-04-09 (landed)
 **Owner:** Lepus side
 **Companion docs:**
 - `/lupus/docs/LEPUS_CONNECTORS.md` — the browser-side work spec, written from the daemon team's perspective
@@ -58,15 +58,22 @@ From `daemon/src/protocol.rs`:
 - Request id prefix is `daemon-req-N` so it doesn't collide with the browser's own `req-N` namespace
 - Disambiguated from daemon→browser *replies* by field set: inbound requests have `method`, inbound replies have `status`
 
-### 2.3 Current Lepus-side state
+### 2.3 Current Lepus-side state (post-integration)
 
 | File | Lines | Status |
 |---|---|---|
-| `browser/components/lupus/LupusClient.sys.mjs` | 128 | **Stale** — assumes old `SearchResponse` shape, no inbound dispatch, no version check |
-| `browser/components/lupus/moz.build` | 11 | Only lists `LupusClient.sys.mjs`, no tests entry |
-| `browser/components/lupus/LupusErrorCodes.sys.mjs` | — | Doesn't exist yet |
-| `browser/components/lupus/tests/` | — | Doesn't exist yet |
-| `browser/components/hvym/` (resolver, protocol handler, subnet selector) | 1337 | **Complete** — consumed unchanged, no modifications needed |
+| `browser/components/lupus/LupusClient.sys.mjs` | ~310 | **Current** — two-way IPC, protocol handshake, host_fetch handler, search unpacking, archivePage |
+| `browser/components/lupus/LupusArchiveButton.sys.mjs` | ~190 | **New** — URL bar page-action button for den archival |
+| `browser/components/lupus/LupusErrorCodes.sys.mjs` | ~55 | **New** — JS mirror of `daemon/src/protocol_codes.rs` |
+| `browser/components/lupus/moz.build` | ~21 | Updated — modules + tests registered |
+| `browser/components/lupus/tests/MockLupusDaemon.sys.mjs` | ~260 | **New** — nsIServerSocket WebSocket mock for test isolation |
+| `browser/components/lupus/tests/browser/browser.toml` | 9 | **New** — 4 test files registered |
+| `browser/components/lupus/tests/browser/browser_lupus_*.js` | ~600 | **New** — 79 assertions across 4 files |
+| `browser/base/content/navigator-toolbox.inc.xhtml` | +9 | Archive button XUL in page-action-buttons |
+| `browser/base/content/browser-init.js` | +10 | LupusArchiveButton.init(window) |
+| `browser/themes/shared/urlbar-searchbar.css` | +26 | Archive button states styling |
+| `browser/locales/en-US/browser/browser.ftl` | +2 | Archive button tooltip |
+| `browser/components/hvym/` | 1337 | **Unchanged** — consumed as-is |
 
 ---
 
@@ -223,6 +230,8 @@ A small controller module that owns the URL bar archive button and drives the ar
 ## 5. Phasing
 
 This is **one Lepus PR** after daemon Phase 3 merges in `/lupus`. Internally the work sequences as six phases, each ending in a green build + running tests.
+
+**Retrospective:** All six phases landed on 2026-04-09. Total: 79 mochitest assertions across 4 test files, ~16s runtime. The archive button (Phase 6) is wired but the daemon-side `archive_page` IPC method is not yet implemented.
 
 ### Phase 1 — Protocol surface + mock daemon (no feature behavior yet)
 
@@ -563,34 +572,34 @@ Soft prerequisites (nice to have, not blocking):
 
 ## 12. Sign-off checklist
 
-Before opening the Lepus PR:
+Checked off as each phase landed on 2026-04-09:
 
 **Architecture:**
-- [ ] Confirm message-shape disambiguation (`method` vs `status`) is clean against the current `LupusClient._handleResponse` logic
-- [ ] Confirm `daemon-req-N` id namespace never collides with anything currently in `_pendingRequests`
-- [ ] Confirm the mirror pattern for `LupusErrorCodes.sys.mjs` is acceptable (manual drift detection via grep vs CI check)
-- [ ] Confirm `protocol_version` mismatch → graceful disconnect matches the existing "daemon not running" fallback pattern
+- [x] Confirm message-shape disambiguation (`method` vs `status`) is clean — `_handleMessage` checks `"method" in data`
+- [x] Confirm `daemon-req-N` id namespace never collides — browser emits `req-N`, only accepts `daemon-req-N` from mock
+- [x] Confirm the mirror pattern for `LupusErrorCodes.sys.mjs` is acceptable — manual drift detection via grep
+- [x] Confirm `protocol_version` mismatch → graceful disconnect — returns false, no throw, tested
 
 **Implementation:**
-- [ ] All 6 phases land clean (each ends in green `./mach build faster` + green mochitest run)
-- [ ] Binary body decision (§7.1) implemented: `body: ""` for non-text, `content_type` preserved
-- [ ] `final_url` decision (§7.2) implemented: preserve `hvym://` URI except on cross-origin redirect
-- [ ] Archive HTML sourcing (§7.7) implemented: chrome `fetch` with `credentials: "include"`, 8 MB cap
-- [ ] System-principal fetch behavior documented in `_handleHostFetch` and `LupusArchiveButton` comments
-- [ ] `_sendReply` / `_sendError` wrapped in try/catch
-- [ ] Inbound-handler depth counter (defense-in-depth against deadlock)
-- [ ] Archive button uses canonical hvym:// form via `HvymResolver` when applicable
+- [x] All 6 phases land clean (each ends in green `./mach build faster` + green mochitest run)
+- [x] Binary body decision (§7.1) implemented: `body: ""` for non-text, `content_type` preserved
+- [x] `final_url` decision (§7.2) implemented: uses `response.url` (preserves hvym:// for same-origin)
+- [x] Archive HTML sourcing (§7.7) implemented: chrome `fetch` with `credentials: "include"`, `cache: "force-cache"`, 8 MB cap
+- [x] System-principal fetch behavior documented in `_handleHostFetch` and `LupusArchiveButton` module comments
+- [x] `_sendReply` / `_sendError` wrapped in try/catch
+- [ ] Inbound-handler depth counter (defense-in-depth against deadlock) — deferred, sequential agent loop makes this unlikely
+- [x] Archive button uses canonical hvym:// form via `HvymResolver._resolvedToHvym`
 
 **Tests:**
-- [ ] ~31 new mochitests passing locally
-- [ ] Existing 72/72 hvym mochitests still passing
-- [ ] Manual smoke test from §8.3 passes (real daemon + real browser + Wikipedia fetch)
-- [ ] Manual smoke test: click archive button on real page → verify `den.json` on disk grows with `pinned: true` entry
+- [x] 79 new mochitests passing locally (exceeded the ~31 estimate)
+- [ ] Existing 72/72 hvym mochitests still passing — not re-run this session (no hvym changes)
+- [ ] Manual smoke test from §8.3 passes — blocked on daemon Phases 2-3 landing
+- [ ] Manual smoke test: click archive button → blocked on daemon `archive_page` method
 
 **Docs:**
-- [ ] `docs/LUPUS.md` updated with post-integration state
-- [ ] `docs/LUPUS_INTEGRATION.md` (this doc) retrospective added with what actually landed vs planned
-- [ ] `browser/components/lupus/LupusClient.sys.mjs` has a top-of-file comment pointing at `/lupus/daemon/src/protocol.rs` as the canonical contract source
+- [ ] `docs/LUPUS.md` updated with post-integration state — doing now
+- [x] `docs/LUPUS_INTEGRATION.md` (this doc) retrospective added
+- [x] `browser/components/lupus/LupusClient.sys.mjs` has a top-of-file comment pointing at `/lupus/daemon/src/protocol.rs`
 
 ---
 

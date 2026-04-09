@@ -23,10 +23,12 @@ Lepus Browser                              Lupus Daemon (separate process)
   │                                          │
   │   WebSocket (localhost:9549)             ├── TinyAgent search model + LoRA
   │◄────────────────────────────────────────►├── Security model (code-trained)
-  │                                          ├── IPFS client (Iroh)
-  │   browser/components/lupus/              ├── Distributed crawler/indexer
-  │     LupusClient.sys.mjs                  ├── Local semantic search index
-  │                                          └── Tools (search, fetch, scan, ...)
+  │   Two-way: browser→daemon + daemon→browser  ├── IPFS client (Iroh)
+  │                                          ├── The Den (local content store)
+  │   browser/components/lupus/              ├── Local semantic search index
+  │     LupusClient.sys.mjs (IPC + host_fetch) └── Tools (search, fetch, scan, ...)
+  │     LupusArchiveButton.sys.mjs (pin UI)
+  │     LupusErrorCodes.sys.mjs (mirror)
   │
   │  HVYM resolution lives ENTIRELY in Lepus
   │   browser/components/hvym/
@@ -34,7 +36,9 @@ Lepus Browser                              Lupus Daemon (separate process)
   │     SubnetSelector.sys.mjs
   │
   └── Integration points (Lupus)
-      ├── Page load → security model scans HTML, produces trust score
+      ├── host_fetch (daemon→browser) → browser fetches URLs on daemon's behalf
+      ├── archive button → user pins pages to the den as curation signals
+      ├── Page load (later) → security model scans HTML, produces trust score
       ├── URL bar (later) → optional AI-assisted search results
       └── Content reading (later) → optional summarization/extraction
 ```
@@ -47,7 +51,7 @@ Lepus Browser                              Lupus Daemon (separate process)
 > The browser will keep working with full HVYM functionality even if the
 > Lupus daemon is not installed.
 
-## Status (April 2026 — updated after Lupus daemon Phase 7)
+## Status (April 2026 — updated after Lepus integration Phases 1-6)
 
 | Component | State | Notes |
 |---|---|---|
@@ -61,8 +65,9 @@ Lepus Browser                              Lupus Daemon (separate process)
 | **Content adapter** | Not yet trained | Future work, after search stabilizes in production. |
 | **Iroh IPFS client** | Not yet integrated | `iroh` still commented out in `daemon/Cargo.toml`. Deferred — search + security are the first integration wave; IPFS is second. |
 | **Windows dev setup** | Documented | `/lupus/docs/DAEMON_DEV_SETUP.md`. VS Build Tools 2022 (C++ workload) + LLVM 18+ (libclang for bindgen) + Rust stable. The daemon links llama.cpp C++ from source via `llama-cpp-sys-2`'s cmake build script. |
-| **Lepus-side `LupusClient.sys.mjs`** | Stub | `browser/components/lupus/LupusClient.sys.mjs` connects to `ws://127.0.0.1:9549` and exposes `search`, `scanPage`, `summarize`, `indexPage`, `getStatus`. **Not yet updated for the new `SearchResponse` shape** (see IPC Protocol below) — must be updated before the first integration test. |
-| **Lepus-side HVYM resolver** | **Complete** | `browser/components/hvym/HvymResolver.sys.mjs`. Direct Soroban RPC, byte-identical XDR encoder, JSON-format SCVal response parsing, TTL cache + stale-while-revalidate, URL bar display + copy override, per-tab subnet state, bookmark + star-state overrides. 67+ mochitest assertions passing. End-to-end verified in browser. **Independent of Lupus** — works whether or not the daemon is running. |
+| **Lepus-side IPC (Phases 1-5)** | **Landed** | Two-way WebSocket IPC. Protocol version handshake, inbound `host_fetch` handler (8 MB body cap, 30s timeout, binary detection, cookie reuse, error taxonomy), three-layer `SearchResponse` unpacking, HVYM bare-form normalization. `LupusErrorCodes.sys.mjs` mirrors `protocol_codes.rs`. 79 mochitest assertions across 4 files. |
+| **Lepus-side archive button (Phase 6)** | **Landed (UI only)** | Pin icon in URL bar page-actions, right of the bookmark star. Click → chrome `fetch` → `LupusClient.archivePage()`. HVYM pages archive under canonical `hvym://name@service` form. **Daemon-side `archive_page` method not yet implemented.** |
+| **Lepus-side HVYM resolver** | **Complete** | `browser/components/hvym/HvymResolver.sys.mjs`. Direct Soroban RPC, byte-identical XDR encoder, JSON-format SCVal response parsing, TTL cache + stale-while-revalidate, URL bar display + copy override, per-tab subnet state, bookmark + star-state overrides. 72+ mochitest assertions passing. End-to-end verified in browser. **Independent of Lupus** — works whether or not the daemon is running. |
 
 ---
 
@@ -80,13 +85,15 @@ below drift from that file the Rust side wins.
 | `search` | Browser → Lupus | Run a natural-language query through the LLMCompiler agent loop. Returns `text_answer` (joinner output) + `plan` (per-step transparency) + structured `results`. |
 | `scan_page` | Browser → Lupus | Score an HTML page for phishing/malware. Returns `score: 0-100` + `threats[]`. |
 | `summarize` | Browser → Lupus | Extract title + summary from a loaded page. Takes either `url` or `html`. |
-| `index_page` | Browser → Lupus | Add the current page to the local semantic search index. |
-| `get_status` | Browser → Lupus | Health check. Returns model readiness + IPFS + index state. |
+| `index_page` | Browser → Lupus | Add the current page to the local semantic search index (background/agent path). |
+| `archive_page` | Browser → Lupus | **New.** Pin a page to the den as a curatorial signal (user-intent path via archive button). Params: `{url, html, title, content_type?}`. Response: `{archived: bool, content_cid: string}`. Sets `DenEntry.pinned = true`. **Daemon-side not yet implemented.** |
+| `get_status` | Browser → Lupus | Health check. Returns model readiness + IPFS + index state + `protocol_version`. Browser checks version on connect. |
 | `index_stats` | Browser → Lupus | Index size, last sync time, contribution mode. |
 | `swap_adapter` | Browser → Lupus | Hot-swap the currently-loaded LoRA adapter (e.g. `search` → `content`). |
 | `shutdown` | Browser → Lupus | Save index state and exit cleanly. |
+| `host_fetch` | **Lupus → Browser** | **New.** Daemon asks browser to fetch a URL. Browser replies with `{url, final_url, http_status, content_type, body, truncated, fetched_at}`. 8 MB body cap. Binary content → `body: ""`. Uses `credentials: "include"` (cookie reuse). Supports `hvym://` and bare `name@service` input. |
 
-### `search` response — **new shape, Lepus-side client must be updated**
+### `search` response — three-layer shape (Lepus client updated)
 
 The daemon's search pipeline is LLMCompiler-based (planner → executor →
 joinner), not a single-shot response. The browser gets three layers back
