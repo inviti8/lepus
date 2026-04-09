@@ -393,6 +393,22 @@ export const HvymResolver = {
 
     this._installUrlBarDisplayOverride(win);
     this._installUrlBarCopyOverride(win);
+    this._installBookmarkOverrides(win);
+  },
+
+  // Internal helper: return the hvym://name@service URI that should be
+  // used as the canonical identifier for the currently-loaded page in
+  // this window, or null if the page was not resolved via HVYM (e.g. a
+  // regular https://, about:, or file:// URL).
+  _hvymUriForCurrentBrowser(win) {
+    try {
+      const browser = win.gBrowser?.selectedBrowser;
+      const spec = browser?.currentURI?.spec;
+      if (!spec) return null;
+      return this._resolvedToHvym.get(spec) || null;
+    } catch (e) {
+      return null;
+    }
   },
 
   // Override gURLBar.setURI so the address bar displays the original
@@ -510,6 +526,167 @@ export const HvymResolver = {
       }
       return origGetClipboard();
     };
+  },
+
+  // Override the bookmark creation and star-state query paths so they
+  // use the hvym://name@service URI as the canonical identifier for a
+  // page loaded via HVYM, instead of the underlying https://tunnel URL.
+  //
+  // Two functions are patched:
+  //
+  //   PlacesCommandHook.bookmarkPage    -- runs on Ctrl+D and star click;
+  //                                        creates a new bookmark
+  //   BookmarkingUI.updateStarState     -- runs on every navigation;
+  //                                        queries "is this page bookmarked?"
+  //                                        to update the star icon
+  //
+  // Both upstream implementations read gBrowser.currentURI directly as
+  // the canonical URL, so there's no clean way to proxy at a lower
+  // level -- each function is mirrored with the URL substituted when
+  // the current page has a HVYM mapping. If the upstream implementations
+  // at browser/base/content/browser-places.js change materially, these
+  // mirrors must be updated to match. Relevant upstream line numbers:
+  //
+  //   PlacesCommandHook.bookmarkPage:   browser-places.js line ~400-466
+  //   BookmarkingUI.updateStarState:    browser-places.js line ~1751-1803
+  _installBookmarkOverrides(win) {
+    if (
+      !win.PlacesCommandHook ||
+      typeof win.PlacesCommandHook.bookmarkPage !== "function"
+    ) {
+      console.warn("LEPUS HvymResolver: PlacesCommandHook.bookmarkPage not available");
+      return;
+    }
+    if (
+      !win.BookmarkingUI ||
+      typeof win.BookmarkingUI.updateStarState !== "function"
+    ) {
+      console.warn("LEPUS HvymResolver: BookmarkingUI.updateStarState not available");
+      return;
+    }
+
+    const origBookmarkPage = win.PlacesCommandHook.bookmarkPage.bind(
+      win.PlacesCommandHook
+    );
+    const origUpdateStarState = win.BookmarkingUI.updateStarState.bind(
+      win.BookmarkingUI
+    );
+
+    const getHvymUri = () => this._hvymUriForCurrentBrowser(win);
+
+    // --- bookmarkPage override ---
+    win.PlacesCommandHook.bookmarkPage = async () => {
+      const hvymUriString = getHvymUri();
+      if (!hvymUriString) {
+        return origBookmarkPage();
+      }
+
+      // HVYM path: mirror the logic of the upstream bookmarkPage, but
+      // swap the URL. See the comment block above for the source line
+      // reference. Kept intentionally small to reduce drift risk.
+      const browser = win.gBrowser.selectedBrowser;
+      const hvymUri = Services.io.newURI(hvymUriString);
+      const url = win.URL.fromURI(hvymUri);
+
+      const { PlacesUtils } = ChromeUtils.importESModule(
+        "resource://gre/modules/PlacesUtils.sys.mjs"
+      );
+      const { PlacesUIUtils } = ChromeUtils.importESModule(
+        "resource:///modules/PlacesUIUtils.sys.mjs"
+      );
+      const { PlacesTransactions } = ChromeUtils.importESModule(
+        "resource://gre/modules/PlacesTransactions.sys.mjs"
+      );
+
+      let info = await PlacesUtils.bookmarks.fetch({ url });
+      const isNewBookmark = !info;
+      const showEditUI = !isNewBookmark || win.StarUI?.showForNewBookmarks;
+
+      if (isNewBookmark) {
+        const parentGuid = await PlacesUIUtils.defaultParentGuid;
+        info = { url, parentGuid };
+        info.title = browser.contentTitle || url.href;
+
+        if (!win.StarUI?.showForNewBookmarks) {
+          info.guid = await PlacesTransactions.NewBookmark(info).transact();
+        } else {
+          info.guid = PlacesUtils.bookmarks.unsavedGuid;
+          win.BookmarkingUI.star?.setAttribute("starred", "true");
+        }
+      }
+
+      win.gURLBar?.handleRevert?.();
+
+      if (!showEditUI) {
+        win.StarUI?.showConfirmation?.();
+        return;
+      }
+
+      const node = await PlacesUIUtils.promiseNodeLikeFromFetchInfo(info);
+      await win.StarUI.showEditBookmarkPopup(node, isNewBookmark, url);
+    };
+
+    // --- updateStarState override ---
+    // The upstream implementation sets `this._uri = gBrowser.currentURI`
+    // on its very first line, so there's no way to substitute via
+    // wrapping. We reimplement the function with our substitution
+    // applied at the top.
+    win.BookmarkingUI.updateStarState = function BUI_updateStarState_hvym() {
+      const hvymUriString = getHvymUri();
+      this._uri = hvymUriString
+        ? Services.io.newURI(hvymUriString)
+        : win.gBrowser.currentURI;
+      this._itemGuids.clear();
+      const guids = new Set();
+
+      const pendingUpdate = (this._pendingUpdate = {});
+
+      const { PlacesUtils } = ChromeUtils.importESModule(
+        "resource://gre/modules/PlacesUtils.sys.mjs"
+      );
+
+      PlacesUtils.bookmarks
+        .fetch({ url: this._uri }, b => guids.add(b.guid), { concurrent: true })
+        .catch(console.error)
+        .then(() => {
+          if (pendingUpdate != this._pendingUpdate) {
+            return;
+          }
+
+          if (this._itemGuids.size > 0) {
+            this._itemGuids = new Set(...this._itemGuids, ...guids);
+          } else {
+            this._itemGuids = guids;
+          }
+
+          this._updateStar();
+
+          if (!this._hasBookmarksObserver) {
+            try {
+              this.handlePlacesEvents = this.handlePlacesEvents.bind(this);
+              PlacesUtils.observers.addListener(
+                [
+                  "bookmark-added",
+                  "bookmark-removed",
+                  "bookmark-moved",
+                  "bookmark-url-changed",
+                ],
+                this.handlePlacesEvents
+              );
+              this._hasBookmarksObserver = true;
+            } catch (ex) {
+              console.error(
+                "BookmarkingUI failed adding a bookmarks observer: ",
+                ex
+              );
+            }
+          }
+
+          delete this._pendingUpdate;
+        });
+    };
+    // Preserve the original for debugging / introspection.
+    win.BookmarkingUI.updateStarState._original = origUpdateStarState;
   },
 
   // Read the effective subnet for the given window. Delegates to
