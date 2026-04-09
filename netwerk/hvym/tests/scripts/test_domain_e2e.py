@@ -872,7 +872,26 @@ async def main_async(args: argparse.Namespace) -> int:
         # --keep-alive: hold the plumbing open so a browser can hit the URL.
         # The tunnel_message_loop task is still running in the background, so
         # the local server + WSS bind stay alive until we set stop_event.
-        if args.keep_alive and fetch_ok:
+        #
+        # We engage keep-alive even when Phase 0.6 (the full chain fetch
+        # through the tunnler's HTTP proxy) fails, because 0.6 depends on
+        # the production tunnler's nginx/FastAPI proxy being correctly
+        # configured -- which has historically drifted out of sync. When
+        # 0.6 fails, the Lepus-side in-browser test can still validate URL
+        # bar parsing, Soroban fetch, URL construction, and loadURI; the
+        # fetch will just return whatever 4xx the tunnler is currently
+        # producing instead of the marker HTML.
+        if args.keep_alive:
+            if not fetch_ok:
+                log.warning(
+                    "Phase 0.6 failed but --keep-alive is set. The tunnel + "
+                    "local server will still be held open. In-browser "
+                    "navigation to the resolved URL will likely fail with the "
+                    "same error Phase 0.6 hit -- that is expected when the "
+                    "tunnler production /proxy path is misconfigured. The "
+                    "Lepus-side plumbing (URL bar parse, Soroban fetch, URL "
+                    "construction, loadURI) is still exercised."
+                )
             tunnel_id = getattr(record, "tunnel_id", None)
             tunnel_id_str = (
                 tunnel_id.address if hasattr(tunnel_id, "address") else str(tunnel_id)

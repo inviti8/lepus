@@ -419,3 +419,6 @@ CLAUDE.local.md
 # LEPUS: Rust build artifacts
 contracts/hvym-name-registry/target/
 tools/pelt-kit/target/
+
+gfx/target
+gfx/vello_bindings/target

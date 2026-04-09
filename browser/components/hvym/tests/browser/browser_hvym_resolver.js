@@ -333,9 +333,37 @@ add_task(function test_cache_recordResolution_and_substitution() {
     "https://G123.tunnel.hvym.link/gallery"
   );
   Assert.equal(
-    HvymResolver._resolvedToHvym.get("https://G123.tunnel.hvym.link/gallery"),
+    HvymResolver._resolvedToHvym.get("https://g123.tunnel.hvym.link/gallery"),
     "hvym://alice@gallery",
-    "resolved -> hvym mapping recorded"
+    "resolved -> hvym mapping stores key normalized through nsIURI"
+  );
+});
+
+// Regression test: the store side receives the UPPERCASE Stellar address
+// from Soroban, but Firefox normalizes hosts to lowercase at channel
+// creation time. The URL bar's setURI override looks up the lowercased
+// form. If recordResolution stores with the uppercase key, the lookup
+// misses and the URL bar shows the raw tunnel URL instead of hvym://.
+add_task(function test_cache_substitution_survives_host_case_normalization() {
+  HvymResolver._resolvedToHvym.clear();
+
+  // Simulate what _resolveAndLoad does: pass the uppercase form it got
+  // from the Soroban NameRecord's tunnel_id field.
+  const uppercaseUrl =
+    "https://GDVL2JDAZPJ2M3WQSOHIZ5R7GFICO2GJGGLISTHXZUI3QOAY7T5XK7YV.tunnel.hvym.link/e2e.html";
+  HvymResolver.recordResolution(
+    "hvym://lepus-e2e-gdvl2jda@default",
+    uppercaseUrl
+  );
+
+  // Simulate what setURI sees: Firefox has normalized the host to
+  // lowercase. The lookup MUST find the same entry.
+  const lowercaseUrl =
+    "https://gdvl2jdazpj2m3wqsohiz5r7gfico2gjgglisthxzui3qoay7t5xk7yv.tunnel.hvym.link/e2e.html";
+  Assert.equal(
+    HvymResolver._resolvedToHvym.get(lowercaseUrl),
+    "hvym://lepus-e2e-gdvl2jda@default",
+    "substitution map survives host-case normalization"
   );
 });
 

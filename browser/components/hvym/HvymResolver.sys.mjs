@@ -286,16 +286,30 @@ export const HvymResolver = {
   _resolvedToHvymCap: 256,
 
   // Record a successful (hvym, https) pair for later URL bar substitution.
+  //
+  // IMPORTANT: the resolvedUrl is normalized through Services.io.newURI
+  // before being stored as the map key. Firefox normalizes URI hosts to
+  // lowercase at channel creation per RFC 3986, so the URL bar's setURI
+  // override will later look up the lowercased form -- if we stored the
+  // key with the uppercase Stellar address we got from the Soroban
+  // record, the lookup would miss and the URL bar would fall through to
+  // displaying the underlying https:// URL instead of hvym://name@service.
   recordResolution(hvymUri, resolvedUrl) {
     if (!hvymUri || !resolvedUrl) return;
-    if (this._resolvedToHvym.has(resolvedUrl)) {
+    let key;
+    try {
+      key = Services.io.newURI(resolvedUrl).spec;
+    } catch (e) {
+      key = resolvedUrl;
+    }
+    if (this._resolvedToHvym.has(key)) {
       // Refresh insertion order so the entry survives FIFO eviction.
-      this._resolvedToHvym.delete(resolvedUrl);
+      this._resolvedToHvym.delete(key);
     } else if (this._resolvedToHvym.size >= this._resolvedToHvymCap) {
       const oldest = this._resolvedToHvym.keys().next().value;
       this._resolvedToHvym.delete(oldest);
     }
-    this._resolvedToHvym.set(resolvedUrl, hvymUri);
+    this._resolvedToHvym.set(key, hvymUri);
   },
 
   init(win) {
@@ -378,6 +392,7 @@ export const HvymResolver = {
     };
 
     this._installUrlBarDisplayOverride(win);
+    this._installUrlBarCopyOverride(win);
   },
 
   // Override gURLBar.setURI so the address bar displays the original
@@ -390,8 +405,24 @@ export const HvymResolver = {
   // The substitution table is HvymResolver._resolvedToHvym, populated
   // by _resolveAndLoad and HvymProtocolHandler. If a setURI call comes
   // through with a URI we don't recognize, the original setURI runs
-  // unchanged. Safe to install once per window because gURLBar is a
-  // window-scoped element.
+  // unchanged.
+  //
+  // IMPORTANT: the substitution is applied by overwriting
+  // gURLBar.inputField.value *after* origSetURI returns, NOT by
+  // replacing opts.uri before it runs. Replacing opts.uri would cause
+  // setURI's internal Services.io.createExposableURI() call to strip
+  // the "name@" userinfo portion from our hvym://name@service URI for
+  // anti-phishing reasons, leaving only "hvym://service" in the display.
+  // Overwriting inputField.value after the fact bypasses that pipeline
+  // entirely and gives us the exact string we want shown.
+  //
+  // Copy-from-URL-bar continues to grab the underlying https:// URL
+  // via gBrowser.currentURI, which is a Firefox security feature we
+  // deliberately don't fight -- the user should never be able to copy
+  // a "pretty" URL and paste it as the real one they were viewing.
+  //
+  // Safe to install once per window because gURLBar is a window-scoped
+  // element.
   _installUrlBarDisplayOverride(win) {
     const urlBar = win.gURLBar;
     if (!urlBar || typeof urlBar.setURI !== "function") {
@@ -400,20 +431,84 @@ export const HvymResolver = {
     }
     const origSetURI = urlBar.setURI.bind(urlBar);
     urlBar.setURI = opts => {
+      // Look up ahead of time so we can apply the override AFTER
+      // origSetURI finishes -- see the comment above for why we can't
+      // do this by substituting opts.uri.
+      let hvymDisplay = null;
       try {
         const incoming = opts && opts.uri;
         if (incoming && typeof incoming.spec === "string") {
-          const hvymUriString = this._resolvedToHvym.get(incoming.spec);
-          if (hvymUriString) {
-            opts = { ...opts, uri: Services.io.newURI(hvymUriString) };
+          hvymDisplay = this._resolvedToHvym.get(incoming.spec);
+        }
+      } catch (e) {
+        console.error("LEPUS HvymResolver: setURI lookup failed", e);
+      }
+
+      const result = origSetURI(opts);
+
+      if (hvymDisplay) {
+        try {
+          if (urlBar.inputField) {
+            urlBar.inputField.value = hvymDisplay;
+          }
+        } catch (e) {
+          console.error(
+            "LEPUS HvymResolver: post-setURI display override failed",
+            e
+          );
+        }
+      }
+
+      return result;
+    };
+  },
+
+  // Override gURLBar._getSelectedValueForClipboard so that copying the
+  // full URL bar content gives the user the hvym://name@service form
+  // instead of the underlying https://tunnel URL. This is intentionally
+  // the opposite of Firefox's default anti-phishing behavior, which
+  // reads from gBrowser.currentURI on copy so a malicious site can't
+  // trick users into copying a spoofed URL.
+  //
+  // In HVYM's case the substitution is not a spoof -- the hvym://
+  // name is the canonical shareable identifier the user should be
+  // able to copy and send. The underlying https:// tunnel URL contains
+  // the tester's raw Stellar address and is not a useful thing to
+  // share (it will rotate if the owner calls update_tunnel).
+  //
+  // We only substitute when the ENTIRE URL bar is selected. Partial
+  // selections (e.g. the user dragged to select just a word) fall
+  // through to the original implementation unchanged.
+  _installUrlBarCopyOverride(win) {
+    const urlBar = win.gURLBar;
+    if (!urlBar || typeof urlBar._getSelectedValueForClipboard !== "function") {
+      console.warn(
+        "LEPUS HvymResolver: gURLBar._getSelectedValueForClipboard not available"
+      );
+      return;
+    }
+    const origGetClipboard = urlBar._getSelectedValueForClipboard.bind(urlBar);
+    urlBar._getSelectedValueForClipboard = () => {
+      try {
+        const input = urlBar.inputField;
+        const fullSelection =
+          input &&
+          input.selectionStart === 0 &&
+          input.selectionEnd === input.value.length &&
+          input.value.length > 0;
+        if (fullSelection) {
+          const currentSpec = win.gBrowser?.currentURI?.spec;
+          if (currentSpec) {
+            const hvymUriString = this._resolvedToHvym.get(currentSpec);
+            if (hvymUriString) {
+              return hvymUriString;
+            }
           }
         }
       } catch (e) {
-        // Don't break the URL bar if substitution fails for any reason --
-        // fall through to the original call with unmodified args.
-        console.error("LEPUS HvymResolver: setURI override failed", e);
+        console.error("LEPUS HvymResolver: copy override failed", e);
       }
-      return origSetURI(opts);
+      return origGetClipboard();
     };
   },
 
