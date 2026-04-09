@@ -50,7 +50,7 @@ toolbar[inactive="true"] .urlbar,
 #urlbar:not([actiontype="switchtab"]) > .urlbar-input-container > #urlbar-label-box > #urlbar-label-switchtab,
 #urlbar:not([actiontype="extension"]) > .urlbar-input-container > #urlbar-label-box > #urlbar-label-extension,
 .urlbar-input-container[pageproxystate="invalid"] > #page-action-buttons > .urlbar-page-action,
-#identity-box.chromeUI ~ #page-action-buttons > .urlbar-page-action:not(#star-button-box, #split-view-button),
+#identity-box.chromeUI ~ #page-action-buttons > .urlbar-page-action:not(#star-button-box, #split-view-button, #lupus-archive-button-box),
 #urlbar[usertyping] > .urlbar-input-container > #page-action-buttons > #urlbar-zoom-button,
 .urlbar:not([usertyping]) > .urlbar-input-container > .urlbar-go-button,
 .urlbar:not(#searchbar-new, [focused]) > .urlbar-input-container > .urlbar-go-button,
@@ -584,6 +584,30 @@ toolbar[inactive="true"] .urlbar,
 #star-button[starred] {
   fill-opacity: 1;
   fill: var(--toolbarbutton-icon-fill-attention);
+}
+
+/* LEPUS: Archive button — pin to the Lupus den */
+
+#lupus-archive-button {
+  list-style-image: url("chrome://browser/skin/pin.svg");
+}
+
+#lupus-archive-button-box[lupus-state="archived"] > #lupus-archive-button {
+  fill-opacity: 1;
+  fill: var(--toolbarbutton-icon-fill-attention);
+}
+
+#lupus-archive-button-box[lupus-state="disabled"] {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+#lupus-archive-button-box[lupus-state="archiving"] > #lupus-archive-button {
+  opacity: 0.5;
+}
+
+#lupus-archive-button-box[lupus-state="error"] > #lupus-archive-button {
+  fill: light-dark(#e22850, #ff6680);
 }
 
 /* URL bar and page action buttons */

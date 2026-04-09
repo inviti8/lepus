@@ -252,6 +252,16 @@ var gBrowserInit = {
       console.error("LEPUS: Failed to initialize HvymResolver:", e);
     }
 
+    // LEPUS: Archive button — pin pages to the Lupus den.
+    try {
+      let { LupusArchiveButton } = ChromeUtils.importESModule(
+        "resource:///modules/LupusArchiveButton.sys.mjs"
+      );
+      LupusArchiveButton.init(window);
+    } catch (e) {
+      console.error("LEPUS: Failed to initialize LupusArchiveButton:", e);
+    }
+
     // Hack to ensure that the various initial pages favicon is loaded
     // instantaneously, to avoid flickering and improve perceived performance.
     this._callWithURIToLoad(uriToLoad => {

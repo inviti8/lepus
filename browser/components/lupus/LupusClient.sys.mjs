@@ -190,6 +190,23 @@ export const LupusClient = {
     return this._request("index_page", metadata);
   },
 
+  /**
+   * Pin a page to the Lupus den as a curatorial signal.
+   * This is the user-intent path (explicit button click), distinct from
+   * indexPage which is the background/agent path.
+   *
+   * @param {object} params - {url, html, title, contentType?}
+   * @returns {object} {archived: bool, content_cid: string} on success
+   */
+  async archivePage({ url, html, title, contentType }) {
+    return this._request("archive_page", {
+      url,
+      html,
+      title,
+      content_type: contentType,
+    });
+  },
+
   async getStatus() {
     return this._request("get_status", {});
   },

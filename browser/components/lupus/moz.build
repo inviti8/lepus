@@ -7,6 +7,7 @@
 # LEPUS: Thin client for Lupus AI daemon communication.
 
 EXTRA_JS_MODULES += [
+    "LupusArchiveButton.sys.mjs",
     "LupusClient.sys.mjs",
     "LupusErrorCodes.sys.mjs",
 ]
