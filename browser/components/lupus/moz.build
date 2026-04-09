@@ -8,4 +8,13 @@
 
 EXTRA_JS_MODULES += [
     "LupusClient.sys.mjs",
+    "LupusErrorCodes.sys.mjs",
+]
+
+TESTING_JS_MODULES += [
+    "tests/MockLupusDaemon.sys.mjs",
+]
+
+BROWSER_CHROME_MANIFESTS += [
+    "tests/browser/browser.toml",
 ]

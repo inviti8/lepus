@@ -41,6 +41,7 @@ DIRS += [
     "downloads",
     "enterprisepolicies",
     "hvym",  # LEPUS
+    "lupus",  # LEPUS
     "extensions",
     "firefoxview",
     "genai",

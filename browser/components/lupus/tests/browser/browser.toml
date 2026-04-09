@@ -1,0 +1,9 @@
+[DEFAULT]
+
+["browser_lupus_protocol_version.js"]
+
+["browser_lupus_host_fetch.js"]
+
+["browser_lupus_host_fetch_hvym.js"]
+
+["browser_lupus_search_response_shape.js"]
