@@ -60,6 +60,39 @@ export const LupusArchiveButton = {
     });
 
     this._updateState(win);
+
+    // Eagerly attempt to connect to the daemon. If it's not running, the
+    // call resolves false and the button stays disabled — that's the
+    // correct degraded state. If it succeeds, refresh the button state.
+    lazy.LupusClient.connect()
+      .then(connected => {
+        if (connected) {
+          this._updateState(win);
+        }
+      })
+      .catch(err => {
+        console.warn("LEPUS: archive button initial connect failed:", err);
+      });
+
+    // Periodic reconnect probe. If the daemon went down (or wasn't running
+    // at browser startup) and later comes up, this picks it up without
+    // requiring the user to do anything. 10s cadence — connect() is a
+    // no-op when already connected, so the cost is one TCP attempt every
+    // 10s when the daemon isn't running.
+    win.setInterval(() => {
+      if (!lazy.LupusClient.isConnected) {
+        lazy.LupusClient.connect()
+          .then(connected => {
+            if (connected) {
+              this._updateState(win);
+            }
+          })
+          .catch(() => {});
+      } else {
+        this._updateState(win);
+      }
+    }, 10_000);
+
     this._initialized = true;
   },
 
