@@ -86,7 +86,8 @@ below drift from that file the Rust side wins.
 | `scan_page` | Browser → Lupus | Score an HTML page for phishing/malware. Returns `score: 0-100` + `threats[]`. |
 | `summarize` | Browser → Lupus | Extract title + summary from a loaded page. Takes either `url` or `html`. |
 | `index_page` | Browser → Lupus | Add the current page to the local semantic search index (background/agent path). |
-| `archive_page` | Browser → Lupus | **New.** Pin a page to the den as a curatorial signal (user-intent path via archive button). Params: `{url, html, title, content_type?}`. Response: `{archived: bool, content_cid: string}`. Sets `DenEntry.pinned = true`. **Daemon-side not yet implemented.** |
+| `archive_page` | Browser → Lupus | Pin a page to the den as a curatorial signal (user-intent path via archive button). Params: `{url, html, title, content_type?}`. Response: `{archived: bool, content_cid: string}`. Sets `DenEntry.pinned = true`. |
+| `is_pinned` | Browser → Lupus | Pure read query: is this URL in the den AND pinned? Params: `{url}`. Response: `{pinned: bool, fetched_at?: number}`. Called on tab switch / location change to drive the pin icon's filled vs. outline state across browser restarts. URL match is verbatim (browser canonicalizes before calling). Discriminates user curation specifically — `index_page`'d entries report `pinned: false`. |
 | `get_status` | Browser → Lupus | Health check. Returns model readiness + IPFS + index state + `protocol_version`. Browser checks version on connect. |
 | `index_stats` | Browser → Lupus | Index size, last sync time, contribution mode. |
 | `swap_adapter` | Browser → Lupus | Hot-swap the currently-loaded LoRA adapter (e.g. `search` → `content`). |

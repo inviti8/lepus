@@ -21,9 +21,14 @@ ChromeUtils.defineESModuleGetters(lazy, {
 // Body cap for archive fetch (same as host_fetch).
 const ARCHIVE_BODY_CAP = 8 * 1024 * 1024;
 
-// URLs archived this session — avoids round-tripping to the daemon on
-// every tab switch just to show the filled icon.
-const archivedThisSession = new Set();
+// Per-URL pinned-state cache: url → {pinned: bool, ts: number}.
+// Authoritative source is the daemon's `is_pinned` query, but we cache
+// the answer for PINNED_CACHE_TTL_MS to avoid round-tripping on every
+// tab switch / location change for the same page. After a click that
+// archives a page, we optimistically write {pinned: true} so the icon
+// fills instantly without waiting for the next _updateState.
+const pinnedCache = new Map();
+const PINNED_CACHE_TTL_MS = 5_000;
 
 export const LupusArchiveButton = {
   _initialized: false,
@@ -119,11 +124,30 @@ export const LupusArchiveButton = {
       return;
     }
 
-    if (archivedThisSession.has(url)) {
-      this._setState(win, "archived");
-    } else {
-      this._setState(win, "idle");
+    // Cache hit within TTL — set state from cache, no daemon round-trip.
+    const cached = pinnedCache.get(url);
+    const now = Date.now();
+    if (cached && now - cached.ts < PINNED_CACHE_TTL_MS) {
+      this._setState(win, cached.pinned ? "archived" : "idle");
+      return;
     }
+
+    // Cache miss or stale — provisionally show idle, then query the daemon.
+    // If the URL changes before the reply lands, skip the state update.
+    this._setState(win, "idle");
+    lazy.LupusClient.isPinned(url)
+      .then(reply => {
+        if (reply?.status !== "ok") {
+          return;
+        }
+        const pinned = !!reply.result?.pinned;
+        pinnedCache.set(url, { pinned, ts: Date.now() });
+        // Only apply if the user is still on the same URL.
+        if (this._getCanonicalUrl(win) === url) {
+          this._setState(win, pinned ? "archived" : "idle");
+        }
+      })
+      .catch(() => {});
   },
 
   // Get the canonical URL for archiving. For hvym:// pages, return the
@@ -209,7 +233,9 @@ export const LupusArchiveButton = {
       });
 
       if (reply?.status === "ok") {
-        archivedThisSession.add(url);
+        // Optimistic cache write so the icon fills immediately without
+        // waiting for the next _updateState round-trip to confirm.
+        pinnedCache.set(url, { pinned: true, ts: Date.now() });
         this._setState(win, "archived");
       } else {
         console.warn(

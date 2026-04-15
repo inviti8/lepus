@@ -207,6 +207,16 @@ export const LupusClient = {
     });
   },
 
+  /**
+   * Pure read query: is this URL in the den AND pinned?
+   * Returns {pinned: bool, fetched_at?: number} on success.
+   * Pinned-only — index_page'd entries (background, pinned: false) report
+   * pinned: false here.
+   */
+  async isPinned(url) {
+    return this._request("is_pinned", { url });
+  },
+
   async getStatus() {
     return this._request("get_status", {});
   },
