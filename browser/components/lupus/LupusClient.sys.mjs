@@ -32,8 +32,13 @@ const KNOWN_PROTOCOL_VERSION = "0.1";
 // Body cap for host_fetch responses (8 MB). Matches daemon expectation.
 const HOST_FETCH_BODY_CAP = 8 * 1024 * 1024;
 
-// Timeout for host_fetch calls (30 seconds).
-const HOST_FETCH_TIMEOUT_MS = 30_000;
+// Timeout for host_fetch calls. Strictly less than the daemon's 30s
+// HOST_FETCH_TIMEOUT (daemon/src/host_rpc/mod.rs) so the browser cuts off
+// noticeably before the daemon does — this way the daemon receives our
+// abort/error envelope cleanly instead of racing its own timeout. 5s
+// headroom covers WebSocket serialization, tokio scheduling latency,
+// and OS socket buffering quirks.
+const HOST_FETCH_TIMEOUT_MS = 25_000;
 
 // Content types we read the body for. Everything else gets body: "".
 const TEXT_CONTENT_TYPES = [
@@ -240,6 +245,13 @@ export const LupusClient = {
     const id = `req-${this._nextId++}`;
 
     return new Promise(resolve => {
+      // 120s: the `search` method runs the full agent loop on CPU
+      // (planner inference + tool callbacks + joinner). First-call
+      // cold-context latency on TinyAgent-1.1B Q4 + CPU is 30-60s;
+      // warm is 10-20s. 30s was too tight and caused false timeouts.
+      // All other daemon methods (get_status, is_pinned, scan_page,
+      // archive_page, index_page) complete in well under 1s, so this
+      // cap is effectively only load-bearing for `search`.
       const timeout = lazy.setTimeout(() => {
         this._pendingRequests.delete(id);
         resolve({
@@ -249,7 +261,7 @@ export const LupusClient = {
             message: "Lupus daemon timed out",
           },
         });
-      }, 30000);
+      }, 120000);
 
       this._pendingRequests.set(id, { resolve, timeout });
 
