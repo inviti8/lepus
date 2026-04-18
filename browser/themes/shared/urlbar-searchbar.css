@@ -50,7 +50,7 @@ toolbar[inactive="true"] .urlbar,
 #urlbar:not([actiontype="switchtab"]) > .urlbar-input-container > #urlbar-label-box > #urlbar-label-switchtab,
 #urlbar:not([actiontype="extension"]) > .urlbar-input-container > #urlbar-label-box > #urlbar-label-extension,
 .urlbar-input-container[pageproxystate="invalid"] > #page-action-buttons > .urlbar-page-action,
-#identity-box.chromeUI ~ #page-action-buttons > .urlbar-page-action:not(#star-button-box, #split-view-button, #lupus-archive-button-box),
+#identity-box.chromeUI ~ #page-action-buttons > .urlbar-page-action:not(#star-button-box, #split-view-button, #lupus-archive-button-box, #lupus-trust-indicator-box),
 #urlbar[usertyping] > .urlbar-input-container > #page-action-buttons > #urlbar-zoom-button,
 .urlbar:not([usertyping]) > .urlbar-input-container > .urlbar-go-button,
 .urlbar:not(#searchbar-new, [focused]) > .urlbar-input-container > .urlbar-go-button,
@@ -608,6 +608,102 @@ toolbar[inactive="true"] .urlbar,
 
 #lupus-archive-button-box[lupus-state="error"] > #lupus-archive-button {
   fill: light-dark(#e22850, #ff6680);
+}
+
+/* LEPUS: Trust indicator — shield/warning icon driven by Lupus scan_page */
+
+#lupus-trust-indicator {
+  /* Base list-style-image overridden per-state below */
+  list-style-image: url("chrome://browser/skin/trust-icon-active.svg");
+}
+
+#lupus-trust-indicator-box[lupus-state="hidden"] {
+  display: none;
+}
+
+#lupus-trust-indicator-box[lupus-state="safe"] > #lupus-trust-indicator {
+  list-style-image: url("chrome://browser/skin/trust-icon-active.svg");
+  fill-opacity: 1;
+  fill: light-dark(#388a3c, #6ec07a);
+}
+
+#lupus-trust-indicator-box[lupus-state="warn"] > #lupus-trust-indicator {
+  list-style-image: url("chrome://browser/skin/trust-icon-warning.svg");
+  fill-opacity: 1;
+  fill: light-dark(#c88400, #ffb84d);
+}
+
+#lupus-trust-indicator-box[lupus-state="alert"] > #lupus-trust-indicator {
+  list-style-image: url("chrome://browser/skin/trust-icon-insecure.svg");
+  fill-opacity: 1;
+  fill: light-dark(#d32f2f, #ff6680);
+}
+
+/* Trust popover — threat details */
+
+#lupus-trust-popup-content {
+  padding: 12px;
+  min-width: 280px;
+  max-width: 380px;
+}
+
+#lupus-trust-popup-header {
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--panel-separator-color, #ccc);
+  margin-bottom: 8px;
+  gap: 8px;
+}
+
+#lupus-trust-popup-icon {
+  width: 24px;
+  height: 24px;
+  -moz-context-properties: fill, fill-opacity;
+  fill: currentColor;
+  fill-opacity: 1;
+  list-style-image: url("chrome://browser/skin/trust-icon-active.svg");
+}
+
+#lupus-trust-popup-title {
+  font-weight: 600;
+}
+
+#lupus-trust-popup-score {
+  opacity: 0.7;
+  font-size: 0.9em;
+}
+
+#lupus-trust-popup-empty {
+  opacity: 0.7;
+  font-style: italic;
+  padding: 4px 0;
+}
+
+.lupus-trust-threat {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--panel-separator-color, #eee);
+  gap: 2px;
+}
+
+.lupus-trust-threat:last-child {
+  border-bottom: none;
+}
+
+.lupus-trust-threat-kind {
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.lupus-trust-threat[severity="high"] .lupus-trust-threat-kind {
+  color: light-dark(#d32f2f, #ff6680);
+}
+
+.lupus-trust-threat[severity="medium"] .lupus-trust-threat-kind {
+  color: light-dark(#c88400, #ffb84d);
+}
+
+.lupus-trust-threat-description {
+  opacity: 0.85;
+  font-size: 0.9em;
 }
 
 /* URL bar and page action buttons */

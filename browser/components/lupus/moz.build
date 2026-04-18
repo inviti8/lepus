@@ -10,6 +10,7 @@ EXTRA_JS_MODULES += [
     "LupusArchiveButton.sys.mjs",
     "LupusClient.sys.mjs",
     "LupusErrorCodes.sys.mjs",
+    "LupusTrustIndicator.sys.mjs",
 ]
 
 TESTING_JS_MODULES += [

@@ -907,4 +907,27 @@
     <menuitem id="select-translations-panel-about-translations-menuitem"
               data-l10n-id="translations-panel-settings-about2"/>
   </menupopup>
+
+  <!-- LEPUS: Trust indicator popover — threat details from Lupus scan_page -->
+  <panel id="lupus-trust-popup"
+         type="arrow"
+         position="bottomleft topleft"
+         role="alertdialog"
+         consumeoutsideclicks="true"
+         onpopupshown="LupusTrustIndicator?.onPopupShown(event);"
+         onpopuphidden="LupusTrustIndicator?.onPopupHidden(event);">
+    <vbox id="lupus-trust-popup-content" class="panel-subview-body">
+      <hbox id="lupus-trust-popup-header" align="center">
+        <image id="lupus-trust-popup-icon"/>
+        <vbox flex="1">
+          <label id="lupus-trust-popup-title"/>
+          <description id="lupus-trust-popup-score"/>
+        </vbox>
+      </hbox>
+      <vbox id="lupus-trust-popup-threats"/>
+      <description id="lupus-trust-popup-empty"
+                   data-l10n-id="urlbar-lupus-trust-no-threats"
+                   hidden="true"/>
+    </vbox>
+  </panel>
 </popupset>

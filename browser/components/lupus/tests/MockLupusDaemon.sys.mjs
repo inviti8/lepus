@@ -122,6 +122,7 @@ export class MockLupusDaemon {
     this._nextDaemonReqId = 1;
     this._pendingDaemonRequests = new Map();
     this._searchResponse = null;
+    this._scanResponse = null;
   }
 
   get url() {
@@ -149,6 +150,14 @@ export class MockLupusDaemon {
    */
   setSearchResponse(result) {
     this._searchResponse = result;
+  }
+
+  /**
+   * Set a canned scan_page response. Pass the `result` payload
+   * ({score, threats: [...]}) not the full envelope.
+   */
+  setScanResponse(result) {
+    this._scanResponse = result;
   }
 
   async start() {
@@ -319,6 +328,15 @@ export class MockLupusDaemon {
         id: msg.id,
         status: "ok",
         result: this._searchResponse,
+      });
+      return;
+    }
+
+    if (msg.method === "scan_page") {
+      this._send({
+        id: msg.id,
+        status: "ok",
+        result: this._scanResponse || { score: 95, threats: [] },
       });
       return;
     }

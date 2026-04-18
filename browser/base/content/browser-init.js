@@ -262,6 +262,19 @@ var gBrowserInit = {
       console.error("LEPUS: Failed to initialize LupusArchiveButton:", e);
     }
 
+    // LEPUS: Trust indicator — shield/warning icon from Lupus scan_page.
+    try {
+      let { LupusTrustIndicator } = ChromeUtils.importESModule(
+        "resource:///modules/LupusTrustIndicator.sys.mjs"
+      );
+      LupusTrustIndicator.init(window);
+      // Expose on window scope so the popup's inline onpopup* handlers
+      // (in main-popupset.inc.xhtml) can reach it.
+      window.LupusTrustIndicator = LupusTrustIndicator;
+    } catch (e) {
+      console.error("LEPUS: Failed to initialize LupusTrustIndicator:", e);
+    }
+
     // Hack to ensure that the various initial pages favicon is loaded
     // instantaneously, to avoid flickering and improve perceived performance.
     this._callWithURIToLoad(uriToLoad => {

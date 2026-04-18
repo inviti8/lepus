@@ -265,6 +265,22 @@ export const LupusClient = {
 
       this._pendingRequests.set(id, { resolve, timeout });
 
+      // Defensive: if _ws got nulled between the _connected check above
+      // and this line (e.g. an onclose firing asynchronously from a
+      // previous connection), fail the request cleanly.
+      if (!this._ws || this._ws.readyState !== WebSocket.OPEN) {
+        lazy.clearTimeout(timeout);
+        this._pendingRequests.delete(id);
+        resolve({
+          status: "error",
+          error: {
+            code: LupusLocalErrorCodes.NOT_CONNECTED,
+            message: "Lupus daemon connection lost",
+          },
+        });
+        return;
+      }
+
       this._ws.send(JSON.stringify({ id, method, params }));
     });
   },

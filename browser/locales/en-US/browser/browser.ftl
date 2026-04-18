@@ -582,6 +582,12 @@ urlbar-page-action-button =
   .tooltiptext = Page actions
 urlbar-lupus-archive-button =
   .tooltiptext = Archive page to Lupus den
+urlbar-lupus-trust-indicator =
+  .tooltiptext = Lupus trust score for this page
+urlbar-lupus-trust-title-safe = This page looks safe
+urlbar-lupus-trust-title-warn = This page has some concerns
+urlbar-lupus-trust-title-alert = Warning: potential threats detected
+urlbar-lupus-trust-no-threats = Lupus didn't flag any specific threats.
 urlbar-revert-button =
   .tooltiptext = Show the address in the Location Bar
 

@@ -369,6 +369,15 @@
 
           <hbox id="page-action-buttons" context="pageActionContextMenu" align="center" urlbar-slot="page-actions">
             <toolbartabstop/>
+            <!-- LEPUS: Trust indicator — leftmost page-action, shown when Lupus flags the page -->
+            <hbox id="lupus-trust-indicator-box"
+                  hidden="true"
+                  role="button"
+                  class="urlbar-page-action"
+                  data-l10n-id="urlbar-lupus-trust-indicator">
+              <image id="lupus-trust-indicator"
+                     class="urlbar-icon"/>
+            </hbox>
             <hbox id="contextual-feature-recommendation" role="button" hidden="true">
               <hbox id="cfr-label-container">
                 <label id="cfr-label"/>
